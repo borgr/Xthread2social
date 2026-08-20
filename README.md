@@ -45,6 +45,12 @@ Secrets set to the literal `keychain` (or left blank) are read from the macOS Ke
 they never exist as plaintext on disk. Store one without it passing through an editor or a
 terminal transcript:
 
+The Bluesky secret is an **app password** (Settings → Privacy and security → App passwords),
+never your account password. The Mastodon secret is an access token from your instance's
+Preferences → Development → New application, with scopes `read:accounts`, `write:statuses`,
+`write:media` and nothing else — `read:accounts` only reads your own profile, and is what lets
+`--check` verify the token before a publish rather than during one.
+
 ```bash
 thread2social --set-secret bluesky      # or: --set-secret mastodon
 ```

@@ -185,7 +185,8 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
 3. `social.py`: vendor from relay.py, add the Bluesky image path, grapheme length. `--dry-run`
    against the fixture.
 4. Credentials: Bluesky app password (personal handle) + Mastodon token scoped
-   `write:statuses`+`write:media`, in a gitignored `.env`.
+   `read:accounts`+`write:statuses`+`write:media` (the read scope is what makes
+   `verify_credentials` — and therefore `--check` — work before anything posts).
 5. Live: one single-tweet thread to both accounts, then the 8-tweet fixture thread for real.
 6. Userscript + clipboard handoff; then the launchd socket listener.
 7. Ledger + `README.md` (setup, the two-URL invocation, what to do when the reader breaks).
