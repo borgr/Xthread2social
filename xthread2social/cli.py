@@ -9,7 +9,7 @@ import pathlib
 import sys
 
 from . import config
-from .ledger import Ledger
+from .ledger import Busy, Ledger, lock
 from .model import Thread
 from .read_syndication import IncompleteError, ReadError, read_thread
 from .targets import Bluesky, Mastodon, PostError, render
@@ -104,6 +104,11 @@ def preview(thread, args):
 
 
 def publish(thread, args, targets):
+    with lock(thread.root_id):
+        return _publish_locked(thread, args, targets)
+
+
+def _publish_locked(thread, args, targets):
     ledger = Ledger()
     failures = []
     for tgt in targets:
@@ -251,7 +256,11 @@ def main(argv=None):
     if not targets:
         print("[error] no target configured - see ~/.config/xthread2social/env", file=sys.stderr)
         return 2
-    return 1 if publish(thread, args, targets) else 0
+    try:
+        return 1 if publish(thread, args, targets) else 0
+    except Busy as e:
+        print(f"[busy] {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

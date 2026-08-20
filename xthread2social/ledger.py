@@ -5,6 +5,7 @@ at 5 with the correct parent instead of reposting the first four or refusing to 
 """
 import json
 import os
+from contextlib import contextmanager
 from pathlib import Path
 
 DEFAULT = Path(os.environ.get("XTHREAD2SOCIAL_HOME",
@@ -39,3 +40,32 @@ class Ledger:
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=1))
         tmp.replace(self.path)                    # atomic: no half-written ledger
+
+
+class Busy(Exception):
+    """Another process is already publishing this thread."""
+
+
+@contextmanager
+def lock(root_id, path=None):
+    """Hold an exclusive per-thread lock for the length of a publish.
+
+    launchd starts a fresh handler per connection, so two overlays - two tabs, or a retry
+    after the browser's request timed out while the first publish was still uploading - are
+    two processes reading the same ledger at once. Both would see "0 posted" and post the
+    whole thread twice, which is exactly the failure the ledger exists to prevent. The lock
+    is per thread rather than global so publishing two different threads at once still works.
+    """
+    import fcntl
+    d = Path(path or DEFAULT).parent
+    d.mkdir(parents=True, exist_ok=True)
+    f = open(d / f"publish-{root_id}.lock", "w")
+    try:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            raise Busy(f"thread {root_id} is already being published by another window; "
+                       f"wait for it to finish, then re-run to resume if it stopped early")
+        yield
+    finally:
+        f.close()                                # closing releases the flock

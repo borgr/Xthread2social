@@ -34,3 +34,22 @@ class TestLedger(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLock(unittest.TestCase):
+    """Two publishes of the same thread at once would each see "nothing posted yet"."""
+
+    def test_the_second_holder_is_refused_not_queued(self):
+        import tempfile
+        from pathlib import Path
+        from xthread2social.ledger import Busy, lock
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "ledger.json"
+            with lock("42", p):
+                with self.assertRaises(Busy):
+                    with lock("42", p):
+                        pass
+                with lock("99", p):               # a different thread is unaffected
+                    pass
+            with lock("42", p):                   # released on exit
+                pass

@@ -74,6 +74,8 @@ must not be able to post as `colab-links`.
   keeps links clickable, carries images on the post where they appeared.
 - Uploads **all** media before creating **any** post, so an image failure publishes nothing.
 - Records progress per `(thread, target)`: re-run the same command to resume mid-thread.
+- Holds a per-thread lock while publishing, so two tabs (or a retry after the browser gave up
+  on a slow upload) cannot both start from "nothing posted yet" and publish it twice.
 - Mastodon root is public, replies unlisted (`--all-public` to override).
 - Credits someone else's thread twice: `🔁 crossposted from @author` at the bottom of the
   first post, and `— via @author <source>` on the last. The opening line shrinks to
@@ -155,6 +157,9 @@ agent, X's syndication endpoint, and a stale copy of the userscript in the brows
 inside Chrome they all surface as the same "listener not reachable". `--doctor` walks them in
 order, prints a line per layer, tails the listener log, and logs in to both accounts without
 posting. Fix the topmost `FAIL`; anything below it is usually a consequence.
+
+`--doctor` logs in to both accounts, and Bluesky rate-limits session creation - it is a
+diagnosis, not something to put in a loop or a cron job.
 
 Two failures worth naming, because both cost an afternoon here:
 

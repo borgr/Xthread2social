@@ -20,6 +20,7 @@ from contextlib import redirect_stdout
 from . import __version__, config
 from .cli import attribution_for, build_targets, credit_for, publish as do_publish
 from .ledger import DEFAULT as LEDGER_PATH
+from .ledger import Busy
 from .read_syndication import IncompleteError, ReadError, read_thread
 from .targets import render
 
@@ -167,6 +168,9 @@ def handle(method, path, headers, body):
         # people's. Hand it back as a question so the overlay can offer "publish anyway".
         log(f"{method} {path} needs_confirm: {e}")
         return 200, {"needs_confirm": str(e)}
+    except Busy as e:
+        log(f"{method} {path} 409 {e}")
+        return 409, {"error": str(e)}
     except ReadError as e:
         log(f"{method} {path} 400 {e}")
         return 400, {"error": str(e)}
