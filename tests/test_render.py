@@ -65,3 +65,42 @@ class TestGraphemes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCredit(unittest.TestCase):
+    """The opening credit must not reshape the thread to make room for itself."""
+
+    def thread(self, first_text):
+        from thread2social.model import Thread, Tweet
+        return Thread("someone", [Tweet(id="1", text=first_text, author="someone"),
+                                  Tweet(id="2", text="second", author="someone")],
+                      source_url="https://x.com/someone/status/1")
+
+    FORMS = ["\n\n\U0001F501 crossposted from @someone",
+             "\n\n\U0001F501 via @someone",
+             "\n\n\U0001F501 @someone"]
+
+    def test_credit_lands_on_the_first_post_only(self):
+        units = render(self.thread("short opener"), "bluesky", credit=self.FORMS)
+        self.assertIn("crossposted from @someone", units[0]["text"])
+        self.assertNotIn("@someone", units[1]["text"])
+
+    def test_a_full_opener_gets_a_shorter_credit_rather_than_an_extra_post(self):
+        opener = "w " * 137                            # 273 chars: only the short forms fit
+        plain = render(self.thread(opener), "bluesky")
+        credited = render(self.thread(opener), "bluesky", credit=self.FORMS)
+        self.assertEqual(len(plain), len(credited))    # no post added
+        self.assertIn("\U0001F501 via @someone", credited[0]["text"])
+        self.assertNotIn("crossposted", credited[0]["text"])
+        self.assertLessEqual(glen(credited[0]["text"]), 300)
+
+    def test_credit_is_dropped_when_even_the_shortest_would_split_the_opener(self):
+        opener = "w " * 144                            # 287 chars: nothing fits alongside
+        plain = render(self.thread(opener), "bluesky")
+        credited = render(self.thread(opener), "bluesky", credit=self.FORMS)
+        self.assertEqual(len(plain), len(credited))
+        self.assertNotIn("\U0001F501", credited[0]["text"])
+
+    def test_own_thread_gets_no_credit(self):
+        units = render(self.thread("short opener"), "bluesky", credit="")
+        self.assertNotIn("\U0001F501", units[0]["text"])

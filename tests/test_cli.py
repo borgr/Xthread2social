@@ -32,6 +32,7 @@ class TestPreview(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("Preview only", out)          # non-TTY: no publish prompt
         self.assertIn("9 post(s)", out)
+        self.assertIn("\U0001F501 @nthngdy", out)   # opening credit, short form
 
     def test_preview_shows_both_targets_and_the_warnings(self):
         buf = io.StringIO()
@@ -40,6 +41,7 @@ class TestPreview(unittest.TestCase):
         out = buf.getvalue()
         self.assertIn("bluesky: 9 post(s)", out)
         self.assertIn("mastodon: 8 post(s)", out)
+        self.assertIn("crossposted from @nthngdy", out)
         self.assertIn("[warn]", out)
 
     def test_no_urls_and_no_json_is_a_usage_error(self):

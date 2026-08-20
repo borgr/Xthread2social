@@ -52,13 +52,31 @@ def check_credentials(args):
     return 1 if bad else 0
 
 
+def _is_mine(thread):
+    me = config.get("ATPROTO_HANDLE", "").split(".")[0]
+    return bool(me) and thread.author.lower() == me.lower()
+
+
 def attribution_for(thread, args):
+    """Closing line: the source link, plus who wrote it when it isn't you."""
     if args.no_attribution:
         return ""
-    me = config.get("ATPROTO_HANDLE", "").split(".")[0]
-    if thread.author.lower() == me.lower():
+    if _is_mine(thread):
         return f"\n\n{thread.source_url}"
     return f"\n\n— via @{thread.author} {thread.source_url}"
+
+
+def credit_for(thread, args):
+    """Opening credit for the first post: wordings longest-first, never for your own thread.
+
+    render() picks the longest one that still fits without splitting the opening tweet.
+    """
+    if args.no_attribution or _is_mine(thread):
+        return ""
+    h = thread.author
+    return [f"\n\n\U0001F501 crossposted from @{h}",
+            f"\n\n\U0001F501 via @{h}",
+            f"\n\n\U0001F501 @{h}"]
 
 
 def ask_alt(thread):
@@ -78,7 +96,7 @@ def preview(thread, args):
     for w in thread.warnings:
         print(f"  [warn] {w}")
     for kind in args.to:
-        units = render(thread, kind, attribution_for(thread, args))
+        units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args))
         print(f"\n--- {kind}: {len(units)} post(s) ---")
         for i, u in enumerate(units, 1):
             imgs = f"  [{len(u['images'])} image(s)]" if u["images"] else ""
@@ -89,7 +107,8 @@ def publish(thread, args, targets):
     ledger = Ledger()
     failures = []
     for tgt in targets:
-        units = render(thread, tgt.name, attribution_for(thread, args))
+        units = render(thread, tgt.name, attribution_for(thread, args),
+                       credit_for(thread, args))
         start, refs = ledger.done(thread.root_id, tgt.name)
         if start >= len(units):
             print(f"[{tgt.name}] already complete ({start} posts) - nothing to do")

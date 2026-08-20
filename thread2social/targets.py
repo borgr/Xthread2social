@@ -7,20 +7,31 @@ of a half-published thread.
 import time
 
 from .media import fetch_photo, photos_of, shrink
-from .textutil import (MASTODON_LIMIT, build_richtext, chunk_for_bluesky, chunk_text,
-                       glen, mastodon_eff)
+from .textutil import (LIMIT, MASTODON_LIMIT, build_richtext, chunk_for_bluesky,
+                       chunk_text, glen, mastodon_eff)
 
 
 class PostError(Exception):
     """A target failed. Anything already published stays in the ledger."""
 
 
-def render(thread, limit_kind="bluesky", attribution=""):
+def render(thread, limit_kind="bluesky", attribution="", credit=""):
     """Thread -> list of {text, tweet} units, one per post, in order.
 
     A tweet longer than the target's cap becomes several consecutive posts; images ride
     on the first post of their tweet, matching where they appeared on X.
+
+    `credit` goes at the bottom of the very first post, so a reader sees whose thread this
+    is without scrolling to the end; `attribution` (which carries the source link) closes
+    the thread. Both are empty for your own threads.
+
+    `credit` may be several wordings, longest first: the first tweet is re-split against a
+    limit lowered by the credit's length, and the longest wording that does not force the
+    opening tweet to split into an extra post wins. If even the shortest would add a post,
+    the opening credit is dropped - the closing `attribution` still names the author, and
+    reshaping someone's opening tweet to make room for a credit line is the worse trade.
     """
+    forms = [credit] if isinstance(credit, str) else list(credit)
     units = []
     for i, t in enumerate(thread.tweets):
         text = t.text
@@ -28,11 +39,22 @@ def render(thread, limit_kind="bluesky", attribution=""):
             text = f"{text}\n\n> {t.quoted}"
         last = i == len(thread.tweets) - 1
         reserve = len(attribution) if (last and attribution) else 0
-        if limit_kind == "bluesky":
-            chunks = chunk_for_bluesky(text, reserve=reserve)
-        else:
-            chunks = chunk_text(text, reserve=reserve, limit=MASTODON_LIMIT,
-                                url_eff=mastodon_eff)
+
+        def split(cut=0):
+            if limit_kind == "bluesky":
+                return chunk_for_bluesky(text, reserve=reserve, limit=LIMIT - cut)
+            return chunk_text(text, reserve=reserve, limit=MASTODON_LIMIT - cut,
+                              url_eff=mastodon_eff)
+
+        chunks, head = split(), ""
+        if i == 0 and forms and forms[0]:
+            for form in forms:
+                shorter = split(len(form))
+                if len(shorter) == len(chunks):
+                    chunks, head = shorter, form
+                    break
+        if head:
+            chunks[0] = (chunks[0] + head).rstrip()
         if last and attribution:
             chunks[-1] = (chunks[-1] + attribution).strip()
         for j, c in enumerate(chunks):

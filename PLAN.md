@@ -141,7 +141,8 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
 - **Alt text is not in the syndication payload** (`ext_alt_text` absent on the verified
   thread). Images would post with empty alt — an accessibility regression by Bluesky/Mastodon
   norms. `--alt` prompts per image in interactive mode; `--no-alt` to skip deliberately.
-- **Attribution.** Not your thread → `— via @handle` plus the source URL on the final post,
+- **Attribution.** Not your thread → `🔁 crossposted from @handle` on the first post (shrunk
+  or dropped if it would split the opening tweet) and `— via @handle` plus the source URL on the final post,
   and check your Mastodon instance's rules on mirroring before the first non-self thread.
 - **Visibility.** Root public, replies unlisted on Mastodon (relay precedent, avoids flooding);
   `--all-public` to override.

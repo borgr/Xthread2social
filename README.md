@@ -75,7 +75,11 @@ must not be able to post as `colab-links`.
 - Uploads **all** media before creating **any** post, so an image failure publishes nothing.
 - Records progress per `(thread, target)`: re-run the same command to resume mid-thread.
 - Mastodon root is public, replies unlisted (`--all-public` to override).
-- Adds `— via @author <source>` unless the thread is yours (`--no-attribution` to drop it).
+- Credits someone else's thread twice: `🔁 crossposted from @author` at the bottom of the
+  first post, and `— via @author <source>` on the last. The opening line shrinks to
+  `🔁 via @author` or `🔁 @author`, or is dropped entirely, rather than pushing the author's
+  opening tweet into two posts. Neither appears on your own threads; `--no-attribution`
+  drops both.
 
 ## Useful flags
 

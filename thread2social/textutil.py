@@ -176,14 +176,15 @@ def glen(text):
     return len(regex.findall(r"\X", text))
 
 
-def chunk_for_bluesky(text, reserve=0):
+def chunk_for_bluesky(text, reserve=0, limit=None):
     """chunk_text, then guarantee every chunk fits Bluesky's 300-grapheme cap.
 
     The vendored splitter counts codepoints; shrink the limit and re-split until the
     grapheme count fits, so an emoji-dense post can't be rejected mid-thread (which
     would leave earlier posts already live).
     """
-    limit = LIMIT
+    if limit is None:
+        limit = LIMIT
     for _ in range(6):
         chunks = chunk_text(text, reserve=reserve, limit=limit)
         if all(glen(c) + (reserve if c is chunks[-1] else 0) <= 300 for c in chunks):
