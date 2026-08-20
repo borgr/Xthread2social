@@ -10,6 +10,7 @@ graphemes = ["regex>=2024.0"]
 
 [project.scripts]
 xthread2social = "xthread2social.cli:main"
+xthread2social-serve = "xthread2social.serve:main"
 
 [tool.setuptools]
 packages = ["xthread2social"]

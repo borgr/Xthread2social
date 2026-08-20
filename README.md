@@ -90,27 +90,43 @@ must not be able to post as `colab-links`.
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
 | `--allow-incomplete` | post even though the last tweet may have a continuation |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
+| `--install-listener` | install the launchd agent for the browser shortcut, print its token |
+| `--uninstall-listener` | remove that agent |
 
-## Browser shortcut
+## Browser shortcut (no terminal)
 
-Install it **from the URL**, not from your disk — that way a new machine gets it with one
-click and edits you push here reach every browser you use:
+One-time setup:
+
+```bash
+xthread2social --install-listener       # prints a token; installs a launchd agent
+```
+
+Then install the userscript **from the URL** (not from your disk, so a new machine gets it
+with one click and pushed edits reach every browser):
 
 <https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js>
 
-Opening that link with Tampermonkey installed shows its install screen. `@updateURL` points at
-the same file, so Tampermonkey re-checks it and offers updates when `@version` in the header
-goes up — bump that line whenever you change the script, or nothing will update. (Importing the
-local file also works, but pins that browser to whatever the file said the day you imported it.)
+Opening that link with Tampermonkey installed shows its install screen. On the first use it
+asks for the token above (also under Tampermonkey's menu → *Set publish token*); it is stored
+per-browser, which is why this public file contains no secret.
 
-On a thread press
-**Ctrl/Cmd+Shift+T** and it copies a ready-to-run `xthread2social …` command for the thread
-you're looking at. Paste it into a terminal: you get the preview, then `y` publishes. It
-collects tweet ids only — no parsing, no credentials in the browser.
-Scroll to the end of the thread first; the CLI still re-walks and re-verifies the chain.
+Now, on any X thread: scroll to its last tweet and press **Option+Shift+X** (or Ctrl+Shift+X,
+or Tampermonkey's menu → *Publish this thread…*). An overlay shows the thread as it will be
+posted, per target, with warnings; **Publish** posts it and shows the links. Nothing leaves the
+browser and no terminal is involved. `Cmd+Shift+T` is not used — Chrome owns it for "reopen
+closed tab" and a page cannot intercept it.
+
+How it works: the script collects tweet ids only and calls a listener on `127.0.0.1:8765`,
+which `launchd` starts **on connection** and reaps afterwards — no daemon, nothing to restart
+after a reboot. Requests must carry the token, so no other page can make you publish, and the
+socket is bound to loopback only. `--uninstall-listener` removes the agent;
+`--install-listener --rotate-token` issues a new token (and invalidates the old one).
 
 An extension is required rather than a bookmarklet: x.com sends `default-src 'self'`, so
-page-context requests to anything else are blocked.
+page-context requests to `127.0.0.1` are blocked. Tampermonkey's `GM_xmlhttpRequest` is exempt.
+
+If the listener is ever down, Tampermonkey's menu → *Copy CLI command (fallback)* puts a
+ready-to-run command on the clipboard for a terminal.
 
 ## When it breaks
 

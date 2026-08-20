@@ -1,69 +1,191 @@
 // ==UserScript==
-// @name         Xthread2social — copy thread ends
+// @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.1.0
-// @description  On an X thread, copy a ready-to-run xthread2social command for the thread you are looking at.
+// @version      0.2.0
+// @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
 // @downloadURL  https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
 // @updateURL    https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
+// @connect      127.0.0.1
+// @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @run-at       document-idle
 // ==/UserScript==
 
-// Deliberately dumb: this collects tweet IDs and nothing else. No thread parsing, no
-// GraphQL, no credentials — the reader and writer live in Python where they are tested.
-// Snowflake IDs are time-ordered, so min/max of the author's rendered tweets are the ends.
+// This script never parses the thread and never holds an account credential: it collects
+// tweet IDs, then asks the local listener (launchd, 127.0.0.1 only) to render a preview and
+// - after you click Publish - to post it. The token is a capability for that listener,
+// stored per-browser via GM_setValue, so this public file contains no secret.
+//
+// GM_xmlhttpRequest is required rather than fetch: x.com sends `default-src 'self'`, which
+// blocks any page-context request to 127.0.0.1.
 (function () {
   'use strict';
 
-  const pageAuthor = () => location.pathname.split('/')[1];
+  const ENDPOINT = 'http://127.0.0.1:8765';
+  // Option/Ctrl + Shift + X. Cmd+Shift+T is Chrome's "reopen closed tab" and cannot be
+  // intercepted; Option-based combos reach the page. On macOS Option+Shift+X also produces
+  // a dead-key character, so match on e.code as well as e.key.
+  const HOTKEY = e => e.shiftKey && (e.altKey || e.ctrlKey) && !e.metaKey &&
+                      (e.code === 'KeyX' || e.key === 'X' || e.key === 'x' || e.key === '˛');
 
-  function collect() {
+  const pageAuthor = () => location.pathname.split('/')[1];
+  const token = () => GM_getValue('token', '');
+
+  function collectIds() {
     const author = pageAuthor().toLowerCase();
     const ids = new Set();
     for (const a of document.querySelectorAll('article a[href*="/status/"]')) {
       const m = a.getAttribute('href').match(/^\/([^/]+)\/status\/(\d+)/);
       if (m && m[1].toLowerCase() === author) ids.add(m[2]);
     }
-    return [...ids].sort((x, y) => (BigInt(x) < BigInt(y) ? -1 : 1));
+    const m = location.pathname.match(/\/status\/(\d+)/);
+    if (m) ids.add(m[1]);
+    return [...ids].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));
   }
 
-  function command() {
-    const ids = collect();
+  function urlsForRequest() {
+    const ids = collectIds();
     if (!ids.length) return null;
-    const first = `https://x.com/${pageAuthor()}/status/${ids[0]}`;
-    const last = `https://x.com/${pageAuthor()}/status/${ids[ids.length - 1]}`;
+    const u = id => `https://x.com/${pageAuthor()}/status/${id}`;
     // Both ends when we saw more than one, so the CLI can *prove* the chain is complete.
-    return {n: ids.length, cmd: ids.length > 1 ? `xthread2social ${last} ${first}`
-                                              : `xthread2social ${last}`};
+    return ids.length > 1 ? [u(ids[ids.length - 1]), u(ids[0])] : [u(ids[0])];
   }
 
-  function toast(msg, bad) {
-    const el = document.createElement('div');
-    el.textContent = msg;
-    el.style.cssText = `position:fixed;z-index:99999;bottom:24px;left:50%;transform:translateX(-50%);
-      padding:10px 16px;border-radius:8px;font:14px/1.4 system-ui;color:#fff;max-width:70vw;
-      background:${bad ? '#b3261e' : '#1d9bf0'};box-shadow:0 2px 12px rgba(0,0,0,.35)`;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
+  function call(path, payload) {
+    return new Promise((resolve, reject) => {
+      GM_xmlhttpRequest({
+        method: 'POST', url: ENDPOINT + path, timeout: 600000,
+        headers: {'Content-Type': 'application/json', 'X-Token': token()},
+        data: JSON.stringify(payload),
+        onload: r => {
+          let body = {};
+          try { body = JSON.parse(r.responseText); } catch (e) { /* keep the raw status */ }
+          if (r.status === 200 && !body.error) resolve(body);
+          else reject(new Error(body.error || `listener returned HTTP ${r.status}`));
+        },
+        onerror: () => reject(new Error('listener not reachable - run `xthread2social --install-listener`')),
+        ontimeout: () => reject(new Error('listener timed out')),
+      });
+    });
   }
 
-  function run() {
-    const got = command();
-    if (!got) return toast('xthread2social: no tweets found — scroll the thread first', true);
-    GM_setClipboard(got.cmd);
-    // The count is informational only: the CLI re-walks the chain and refuses to post if
-    // the tail may have a continuation. Scrolling to the end is still on you.
-    toast(`copied (${got.n} tweets seen) — paste in a terminal`);
+  // ---------- overlay ----------
+
+  const css = `
+    #x2s-wrap{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);
+      display:flex;align-items:center;justify-content:center;font:14px/1.45 -apple-system,sans-serif}
+    #x2s{background:#16181c;color:#e7e9ea;max-width:620px;width:92%;max-height:86vh;overflow:auto;
+      border-radius:14px;padding:18px 20px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+    #x2s h2{margin:0 0 4px;font-size:16px}
+    #x2s .sub{color:#8b98a5;margin-bottom:12px}
+    #x2s .warn{background:#3a2a10;border-left:3px solid #d9a13a;padding:6px 9px;margin:6px 0;border-radius:4px}
+    #x2s .post{border:1px solid #2f3336;border-radius:9px;padding:8px 10px;margin:7px 0;white-space:pre-wrap}
+    #x2s .meta{color:#8b98a5;font-size:12px;margin-bottom:4px}
+    #x2s .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+    #x2s button{border:0;border-radius:999px;padding:9px 16px;font-weight:600;cursor:pointer}
+    #x2s .go{background:#1d9bf0;color:#fff}
+    #x2s .cancel{background:#2f3336;color:#e7e9ea}
+    #x2s a{color:#1d9bf0}
+    #x2s label{color:#e7e9ea;display:flex;gap:5px;align-items:center}`;
+
+  function close() {
+    const w = document.getElementById('x2s-wrap');
+    if (w) w.remove();
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
-      e.preventDefault();
-      run();
-    }
-  });
-  GM_registerMenuCommand('Copy xthread2social command', run);
+  function shell(title, sub) {
+    close();
+    const wrap = document.createElement('div');
+    wrap.id = 'x2s-wrap';
+    wrap.innerHTML = `<style>${css}</style><div id="x2s"><h2></h2><div class="sub"></div>
+      <div class="body"></div></div>`;
+    wrap.querySelector('h2').textContent = title;
+    wrap.querySelector('.sub').textContent = sub || '';
+    wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+    document.body.appendChild(wrap);
+    return wrap.querySelector('.body');
+  }
+
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+
+  function showPreview(urls, data) {
+    const kinds = Object.keys(data.targets);
+    const body = shell(`@${data.author} - ${data.tweets} tweets`,
+                       kinds.map(k => `${k}: ${data.targets[k].length} posts`).join('   ·   '));
+    const shown = kinds[0];
+    let html = data.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('');
+    html += data.targets[shown].map((p, i) =>
+      `<div class="post"><div class="meta">${i + 1}. ${p.text.length} chars` +
+      `${p.images.length ? ` · ${p.images.length} image(s)` : ''}` +
+      `${kinds.length > 1 && i === 0 ? ` · showing ${shown}` : ''}</div>${esc(p.text)}</div>`).join('');
+    html += '<div class="row">' +
+      kinds.map(k => `<label><input type="checkbox" class="t" value="${k}" checked>${k}</label>`).join('') +
+      '<span style="flex:1"></span><button class="cancel">Cancel</button>' +
+      '<button class="go">Publish</button></div>';
+    body.innerHTML = html;
+    body.querySelector('.cancel').onclick = close;
+    body.querySelector('.go').onclick = () => {
+      const to = [...body.querySelectorAll('.t:checked')].map(c => c.value);
+      if (to.length) doPublish(urls, to);
+    };
+  }
+
+  function showResult(data) {
+    const body = shell('Published', `@${data.author}`);
+    body.innerHTML = Object.entries(data.results).map(([k, v]) =>
+      `<div class="post">${k}: ${v.failed ? 'FAILED - see the log' : `${v.posts} posts`}` +
+      `${v.url ? ` - <a href="${esc(v.url)}" target="_blank" rel="noopener">open</a>` : ''}</div>`).join('') +
+      '<div class="row"><span style="flex:1"></span><button class="cancel">Close</button></div>';
+    body.querySelector('.cancel').onclick = close;
+  }
+
+  function showError(e) {
+    const body = shell('Xthread2social', '');
+    body.innerHTML = `<div class="warn">${esc(e.message || e)}</div>
+      <div class="row"><button class="cancel">Close</button></div>`;
+    body.querySelector('.cancel').onclick = close;
+  }
+
+  async function doPublish(urls, to) {
+    shell('Xthread2social', 'publishing - uploading images, then posting…');
+    try { showResult(await call('/publish', {urls, to})); } catch (e) { showError(e); }
+  }
+
+  async function run() {
+    if (!token()) return askToken(true);
+    const urls = urlsForRequest();
+    if (!urls) return showError(new Error('no tweets found on this page - reload and retry'));
+    shell('Xthread2social',
+          `reading the thread (${urls.length > 1 ? 'both ends given' : 'walking back from this tweet'})…`);
+    try { showPreview(urls, await call('/preview', {urls})); } catch (e) { showError(e); }
+  }
+
+  function askToken(thenRun) {
+    const v = prompt('Paste the token printed by `xthread2social --install-listener`:', token());
+    if (v === null) return;
+    GM_setValue('token', v.trim());
+    if (thenRun) run();
+  }
+
+  function copyCommand() {
+    const urls = urlsForRequest();
+    if (urls) GM_setClipboard('xthread2social ' + urls.join(' '));
+  }
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA)$/.test(t.tagName))) return;
+    if (!HOTKEY(e)) return;
+    e.preventDefault();
+    run();
+  }, true);
+
+  GM_registerMenuCommand('Publish this thread…', run);
+  GM_registerMenuCommand('Set publish token', () => askToken(false));
+  GM_registerMenuCommand('Copy CLI command (fallback)', copyCommand);
 })();

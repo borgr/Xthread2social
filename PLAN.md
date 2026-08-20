@@ -97,9 +97,10 @@ it catches the didn't-scroll-to-the-end case, which is the one that half-publish
 
 ### Handoff, in shipping order
 
-1. **Clipboard (v1.1, zero infra).** Script writes `xthread2social <first> <last>` to the
-   clipboard and toasts. You paste into a terminal. Always works, nothing to keep alive.
-2. **Socket-activated localhost listener (v1.2, one keypress).** `GM_xmlhttpRequest` POSTs to
+1. **Clipboard (shipped, now the fallback).** Script writes `xthread2social <first> <last>` to
+   the clipboard; you paste into a terminal. Kept because it works with no agent installed —
+   but it fails the actual requirement, which is never leaving the browser.
+2. **Socket-activated localhost listener (shipped; the default path).** `GM_xmlhttpRequest` POSTs to
    `127.0.0.1:8765`; a launchd agent with a `Sockets` key starts the handler *on connection*
    and exits after — on-demand, no idle daemon, so goal 4 holds. You already run a launchd
    agent for the relay, so the pattern is known-good here. Bind to `localhost` only, require a
@@ -108,8 +109,12 @@ it catches the didn't-scroll-to-the-end case, which is the one that half-publish
    registered app bundle. Same one-keypress result, no listening socket, but a heavier and
    more macOS-specific one-time setup. Pick 2 unless the socket bothers you.
 
-Publishing still runs `--dry-run` first by default: the shortcut collects and previews, and a
-second confirm posts. The browser never becomes the thing that publishes.
+Publishing still previews first: the shortcut calls `/preview`, the overlay renders every post
+as it will appear, and only a click on **Publish** calls `/publish`. The browser triggers and
+confirms; the Python side is the only thing holding a credential or talking to an API.
+
+The hotkey is Option/Ctrl+Shift+X, not Cmd+Shift+T: Chrome reserves that for "reopen closed
+tab" and a page script cannot intercept it.
 
 ## Reuse from `~/PycharmProjects/discord_atproto_bridge/relay.py`
 

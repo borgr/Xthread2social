@@ -156,6 +156,12 @@ def main(argv=None):
     ap.add_argument("--all-public", action="store_true",
                     help="Mastodon: post replies public too (default: unlisted)")
     ap.add_argument("--no-attribution", action="store_true")
+    ap.add_argument("--install-listener", action="store_true",
+                    help="install the launchd agent that lets the browser shortcut publish "
+                         "without a terminal, and print the token to paste into Tampermonkey")
+    ap.add_argument("--rotate-token", action="store_true",
+                    help="with --install-listener: issue a new token (invalidates the old one)")
+    ap.add_argument("--uninstall-listener", action="store_true")
     args = ap.parse_args(argv)
     args.to = [t.strip() for t in args.to.split(",") if t.strip()]
     config.load()
@@ -171,6 +177,25 @@ def main(argv=None):
         print(f"[saved] {name} -> Keychain (service 'xthread2social')")
         args.to = [args.set_secret]
         return check_credentials(args)
+
+    if args.install_listener or args.uninstall_listener:
+        from . import listener
+        if args.uninstall_listener:
+            listener.uninstall()
+            print("[removed] launchd agent; the browser shortcut falls back to the clipboard")
+            return 0
+        try:
+            token = listener.install(rotate=args.rotate_token)
+        except (RuntimeError, ValueError) as e:
+            print(f"[error] {e}", file=sys.stderr)
+            return 2
+        loaded, _ = listener.status()
+        print(f"[ok] listening on 127.0.0.1:{listener.PORT} "
+              f"({'loaded' if loaded else 'NOT loaded - check launchctl'})\n"
+              f"     agent: {listener.PLIST}\n\n"
+              f"Paste this token into the userscript once (Tampermonkey menu ->\n"
+              f'"Set publish token" on an x.com tab):\n\n    {token}\n')
+        return 0
 
     if args.check:
         return check_credentials(args)
