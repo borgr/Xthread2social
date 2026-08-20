@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.4.0
+// @version      0.5.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -126,16 +126,28 @@
 
   const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
 
-  function showPreview(urls, data, allow) {
+  function showPreview(urls, data) {
     const kinds = Object.keys(data.targets);
-    const body = shell(`@${data.author} - ${data.tweets} tweets`,
-                       kinds.map(k => `${k}: ${data.targets[k].length} posts`).join('   ·   '));
     const shown = kinds[0];
+    const n = data.tweets;
+    // Say "N tweets -> M posts" explicitly: a tweet past the target's character cap becomes
+    // several posts, and without this line a 1-tweet thread showing "2 posts" reads as the
+    // reader having swept up a stray tweet.
+    const sub = kinds.map(k => {
+      const m = data.targets[k].length;
+      return `${k}: ${m} post${m === 1 ? '' : 's'}` + (m > n ? ' (split to fit)' : '');
+    }).join('   ·   ');
+    const body = shell(`@${data.author} - ${n} tweet${n === 1 ? '' : 's'}`, sub);
     let html = data.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('');
-    html += data.targets[shown].map((p, i) =>
-      `<div class="post"><div class="meta">${i + 1}. ${p.text.length} chars` +
-      `${p.images.length ? ` · ${p.images.length} image(s)` : ''}` +
-      `${kinds.length > 1 && i === 0 ? ` · showing ${shown}` : ''}</div>${esc(p.text)}</div>`).join('');
+    html += data.targets[shown].map((p, i) => {
+      const bits = [`${i + 1}.`];
+      if (p.parts > 1) bits.push(`part ${p.part}/${p.parts} of tweet ${p.tweet}`);
+      bits.push(`${p.text.length} chars`);
+      if (p.images.length) bits.push(`${p.images.length} image(s)`);
+      if (kinds.length > 1 && i === 0) bits.push(`showing ${shown}`);
+      return `<div class="post"><div class="meta">${esc(bits.join(' · '))}</div>` +
+             `${esc(p.text)}</div>`;
+    }).join('');
     html += '<div class="row">' +
       kinds.map(k => `<label><input type="checkbox" class="t" value="${k}" checked>${k}</label>`).join('') +
       '<span style="flex:1"></span><button class="cancel">Cancel</button>' +
@@ -144,7 +156,7 @@
     body.querySelector('.cancel').onclick = close;
     body.querySelector('.go').onclick = () => {
       const to = [...body.querySelectorAll('.t:checked')].map(c => c.value);
-      if (to.length) doPublish(urls, to, allow);
+      if (to.length) doPublish(urls, to);
     };
   }
 
@@ -164,35 +176,24 @@
     body.querySelector('.cancel').onclick = close;
   }
 
-  async function doPublish(urls, to, allow) {
+  async function doPublish(urls, to) {
     shell('Xthread2social', 'publishing - uploading images, then posting…');
     try {
-      showResult(await call('/publish', {urls, to, allow_incomplete: !!allow}));
+      showResult(await call('/publish', {urls, to, allow_incomplete: true}));
     } catch (e) { showError(e); }
   }
 
-  // The reader refuses to post a thread whose last tweet has replies, because one of them
-  // might be the author's own continuation. Usually they are strangers' replies, and only a
-  // human looking at the page can tell - so ask instead of failing.
-  function askIncomplete(urls, warning) {
-    const body = shell('Is this the whole thread?', '');
-    body.innerHTML = `<div class="warn">${esc(warning)}</div>
-      <div class="post">Scroll down and check whether the author replied to themselves below
-      the last tweet. If the replies are other people's, publish anyway.</div>
-      <div class="row"><span style="flex:1"></span>
-      <button class="cancel">Cancel</button>
-      <button class="go">Publish anyway</button></div>`;
-    body.querySelector('.cancel').onclick = close;
-    body.querySelector('.go').onclick = () => preview(urls, true);
-  }
-
-  async function preview(urls, allow) {
+  // One screen, not two. The reader's tail gate (the last tweet has replies, one of which
+  // might be the author's own continuation) used to open its own confirm dialog before the
+  // preview - but the preview already lists that warning and already requires a click on
+  // Publish, so the extra dialog asked the same question twice. The overlay therefore reads
+  // with allow_incomplete on and lets the warning + Publish button be the confirmation.
+  // The CLI keeps the hard gate: there, nothing is on screen to overrule it.
+  async function preview(urls) {
     shell('Xthread2social',
           `reading the thread (${urls.length > 1 ? 'both ends given' : 'walking back from this tweet'})…`);
     try {
-      const data = await call('/preview', {urls, allow_incomplete: !!allow});
-      if (data.needs_confirm) return askIncomplete(urls, data.needs_confirm);
-      showPreview(urls, data, allow);
+      showPreview(urls, await call('/preview', {urls, allow_incomplete: true}));
     } catch (e) { showError(e); }
   }
 
@@ -200,7 +201,7 @@
     if (!token()) return askToken(true);
     const urls = urlsForRequest();
     if (!urls) return showError(new Error('no tweets found on this page - reload and retry'));
-    preview(urls, false);
+    preview(urls);
   }
 
   function askToken(thenRun) {
@@ -285,7 +286,7 @@
     } catch (e) {
       listener = String(e.message || e);
     }
-    const body = shell('Xthread2social self-test', `script v0.4.0 running on ${location.host}`);
+    const body = shell('Xthread2social self-test', `script v0.5.0 running on ${location.host}`);
     body.innerHTML = [`hotkey: ${hotkeyLabel(hotkey())}`,
                       `tweets found on this page: ${ids.length}`,
                       `token stored: ${token() ? 'yes' : 'no'}`,

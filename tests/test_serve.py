@@ -109,3 +109,23 @@ class TestIncompleteIsAQuestion(unittest.TestCase):
             serve.ROUTES["/preview"] = old
         self.assertEqual(status, 400)
         self.assertIn("not a tweet URL", body["error"])
+
+
+class TestPreviewLabelsSplits(unittest.TestCase):
+    """One long tweet becomes several posts; the payload must say which tweet they came from,
+    or the overlay's "1 tweet -> 2 posts" looks like a stray tweet was picked up."""
+
+    def test_parts_are_numbered_per_tweet(self):
+        from xthread2social import serve as sv
+        from xthread2social.model import Thread, Tweet
+        long = Tweet("11", "x " * 400, "me")
+        old, sv._thread = sv._thread, lambda payload: Thread("me", [long], source_url="u")
+        try:
+            body = sv.route_preview({"to": ["bluesky"], "urls": ["11"]})
+        finally:
+            sv._thread = old
+        rows = body["targets"]["bluesky"]
+        self.assertGreater(len(rows), 1)
+        self.assertEqual(body["tweets"], 1)
+        self.assertEqual([r["part"] for r in rows], list(range(1, len(rows) + 1)))
+        self.assertTrue(all(r["parts"] == len(rows) and r["tweet"] == 1 for r in rows))

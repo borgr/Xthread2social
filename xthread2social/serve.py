@@ -61,10 +61,22 @@ def route_preview(payload):
     out = {"author": thread.author, "tweets": len(thread.tweets),
            "source_url": thread.source_url, "warnings": list(thread.warnings),
            "urls": [t.url for t in thread.tweets], "targets": {}}
+    index = {t.id: i + 1 for i, t in enumerate(thread.tweets)}
     for kind in args.to:
         units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args))
-        out["targets"][kind] = [{"text": u["text"], "images": [m.url for m in u["images"]]}
-                                for u in units]
+        # A tweet longer than the target's cap becomes several posts; say so, so "1 tweet ->
+        # 2 posts" reads as splitting rather than as the reader having grabbed a stray tweet.
+        parts = {}
+        for u in units:
+            parts[u["tweet"].id] = parts.get(u["tweet"].id, 0) + 1
+        seen = {}
+        rows = []
+        for u in units:
+            tid = u["tweet"].id
+            seen[tid] = seen.get(tid, 0) + 1
+            rows.append({"text": u["text"], "images": [m.url for m in u["images"]],
+                         "tweet": index.get(tid, 0), "part": seen[tid], "parts": parts[tid]})
+        out["targets"][kind] = rows
     return out
 
 
