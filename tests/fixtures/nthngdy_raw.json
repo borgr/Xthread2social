@@ -1,0 +1,2686 @@
+{
+"2090073048565072360": {
+"__typename": "Tweet",
+"favorite_count": 26,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073048107913325",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:01.000Z",
+"display_text_range": [
+0,
+259
+],
+"entities": {
+"urls": [
+{
+"display_url": "arxiv.org/pdf/2608.09703",
+"expanded_url": "https://arxiv.org/pdf/2608.09703",
+"indices": [
+53,
+76
+],
+"url": "https://t.co/kmUCou3gL9"
+},
+{
+"display_url": "huggingface.co/nthngdy/matryo…",
+"expanded_url": "https://huggingface.co/nthngdy/matryoshka-3B",
+"indices": [
+111,
+134
+],
+"url": "https://t.co/gRyww8RscS"
+}
+],
+"user_mentions": [
+{
+"id_str": "322460769",
+"indices": [
+176,
+186
+],
+"name": "Yoav Artzi",
+"screen_name": "yoavartzi"
+},
+{
+"id_str": "740238495952736256",
+"indices": [
+221,
+230
+],
+"name": "NVIDIA AI",
+"screen_name": "NVIDIAAI"
+}
+]
+},
+"id_str": "2090073048565072360",
+"text": "Many other details and experiments are in the paper: https://t.co/kmUCou3gL9\nWe released our checkpoints here: https://t.co/gRyww8RscS\n\nMany thanks to my co-author and advisor @yoavartzi for the precious guidance, and to @NVIDIAAI and to Alps for the compute!",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073048565072360"
+],
+"editable_until_msecs": "1787150821000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"conversation_count": 0,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 15,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073047625543725",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 1,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:01.000Z",
+"display_text_range": [
+0,
+277
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"indices": [
+278,
+301
+],
+"url": "https://t.co/ncuuhBgMQ0"
+}
+]
+},
+"id_str": "2090073048107913325",
+"text": "Because each submodel stack can have its own width and depth, tying model design to inference compute and memory is not obvious\n\nWe offer an extensive analysis and experiments to explore these choices. We find that matching the KV cache footprint also matches performance level https://t.co/ncuuhBgMQ0",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073048107913325"
+],
+"editable_until_msecs": "1787150821000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+278,
+301
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpcX0AE6ZYW.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 660,
+"w": 1179,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 660,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 579,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 330,
+"x": 105,
+"y": 0
+},
+{
+"h": 660,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 660,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 660,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 660,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 374,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ncuuhBgMQ0"
+},
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+278,
+301
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpIWEAAQhhX.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 567,
+"w": 1013,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 567,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 497,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 284,
+"x": 8,
+"y": 0
+},
+{
+"h": 567,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 567,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 567,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 567,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 321,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ncuuhBgMQ0"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 660,
+"w": 1179,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 660,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 579,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 330,
+"x": 105,
+"y": 0
+},
+{
+"h": 660,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpcX0AE6ZYW.jpg",
+"width": 1200,
+"height": 660
+},
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 567,
+"w": 1013,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 567,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 497,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 284,
+"x": 8,
+"y": 0
+},
+{
+"h": 567,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpIWEAAQhhX.jpg",
+"width": 1200,
+"height": 567
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073048107913325": {
+"__typename": "Tweet",
+"favorite_count": 15,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073047625543725",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:01.000Z",
+"display_text_range": [
+0,
+277
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"indices": [
+278,
+301
+],
+"url": "https://t.co/ncuuhBgMQ0"
+}
+]
+},
+"id_str": "2090073048107913325",
+"text": "Because each submodel stack can have its own width and depth, tying model design to inference compute and memory is not obvious\n\nWe offer an extensive analysis and experiments to explore these choices. We find that matching the KV cache footprint also matches performance level https://t.co/ncuuhBgMQ0",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073048107913325"
+],
+"editable_until_msecs": "1787150821000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+278,
+301
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpcX0AE6ZYW.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 660,
+"w": 1179,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 660,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 579,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 330,
+"x": 105,
+"y": 0
+},
+{
+"h": 660,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 660,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 660,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 660,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 374,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ncuuhBgMQ0"
+},
+{
+"display_url": "pic.x.com/ncuuhBgMQ0",
+"expanded_url": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+278,
+301
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpIWEAAQhhX.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 567,
+"w": 1013,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 567,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 497,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 284,
+"x": 8,
+"y": 0
+},
+{
+"h": 567,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 567,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 567,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 567,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 321,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ncuuhBgMQ0"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 660,
+"w": 1179,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 660,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 579,
+"x": 0,
+"y": 0
+},
+{
+"h": 660,
+"w": 330,
+"x": 105,
+"y": 0
+},
+{
+"h": 660,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpcX0AE6ZYW.jpg",
+"width": 1200,
+"height": 660
+},
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 567,
+"w": 1013,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 567,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 497,
+"x": 0,
+"y": 0
+},
+{
+"h": 567,
+"w": 284,
+"x": 8,
+"y": 0
+},
+{
+"h": 567,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073048107913325/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpIWEAAQhhX.jpg",
+"width": 1200,
+"height": 567
+}
+],
+"conversation_count": 1,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 21,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073047151657245",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 1,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+280
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/mqwcVS0Qu0",
+"expanded_url": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"indices": [
+281,
+304
+],
+"url": "https://t.co/mqwcVS0Qu0"
+}
+],
+"urls": [
+{
+"display_url": "arxiv.org/abs/2310.07707",
+"expanded_url": "https://arxiv.org/abs/2310.07707",
+"indices": [
+25,
+48
+],
+"url": "https://t.co/I1qzMeLxDg"
+}
+]
+},
+"id_str": "2090073047625543725",
+"text": "We compare to MatFormer (https://t.co/I1qzMeLxDg), and show that Matryoshka suites offer a better size-performance tradeoff, allow more size flexibility, and deliver variable KV cache requirements\n\nIn short we trade their inference-time flexibility for a better model design space https://t.co/mqwcVS0Qu0",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073047625543725"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/mqwcVS0Qu0",
+"expanded_url": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+281,
+304
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnjWkAAsarp.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 578,
+"w": 1032,
+"x": 168,
+"y": 0
+},
+{
+"h": 578,
+"w": 578,
+"x": 622,
+"y": 0
+},
+{
+"h": 578,
+"w": 507,
+"x": 693,
+"y": 0
+},
+{
+"h": 578,
+"w": 289,
+"x": 906,
+"y": 0
+},
+{
+"h": 578,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 578,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 578,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 578,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 328,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/mqwcVS0Qu0"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 578,
+"w": 1032,
+"x": 168,
+"y": 0
+},
+{
+"h": 578,
+"w": 578,
+"x": 622,
+"y": 0
+},
+{
+"h": 578,
+"w": 507,
+"x": 693,
+"y": 0
+},
+{
+"h": 578,
+"w": 289,
+"x": 906,
+"y": 0
+},
+{
+"h": 578,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnjWkAAsarp.jpg",
+"width": 1200,
+"height": 578
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073047625543725": {
+"__typename": "Tweet",
+"favorite_count": 21,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073047151657245",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+280
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/mqwcVS0Qu0",
+"expanded_url": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"indices": [
+281,
+304
+],
+"url": "https://t.co/mqwcVS0Qu0"
+}
+],
+"urls": [
+{
+"display_url": "arxiv.org/abs/2310.07707",
+"expanded_url": "https://arxiv.org/abs/2310.07707",
+"indices": [
+25,
+48
+],
+"url": "https://t.co/I1qzMeLxDg"
+}
+]
+},
+"id_str": "2090073047625543725",
+"text": "We compare to MatFormer (https://t.co/I1qzMeLxDg), and show that Matryoshka suites offer a better size-performance tradeoff, allow more size flexibility, and deliver variable KV cache requirements\n\nIn short we trade their inference-time flexibility for a better model design space https://t.co/mqwcVS0Qu0",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073047625543725"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/mqwcVS0Qu0",
+"expanded_url": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+281,
+304
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnjWkAAsarp.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 578,
+"w": 1032,
+"x": 168,
+"y": 0
+},
+{
+"h": 578,
+"w": 578,
+"x": 622,
+"y": 0
+},
+{
+"h": 578,
+"w": 507,
+"x": 693,
+"y": 0
+},
+{
+"h": 578,
+"w": 289,
+"x": 906,
+"y": 0
+},
+{
+"h": 578,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 578,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 578,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 578,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 328,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/mqwcVS0Qu0"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 578,
+"w": 1032,
+"x": 168,
+"y": 0
+},
+{
+"h": 578,
+"w": 578,
+"x": 622,
+"y": 0
+},
+{
+"h": 578,
+"w": 507,
+"x": 693,
+"y": 0
+},
+{
+"h": 578,
+"w": 289,
+"x": 906,
+"y": 0
+},
+{
+"h": 578,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073047625543725/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnjWkAAsarp.jpg",
+"width": 1200,
+"height": 578
+}
+],
+"conversation_count": 1,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 27,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073046530785761",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 1,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+268
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/ISedb46PF4",
+"expanded_url": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"indices": [
+269,
+292
+],
+"url": "https://t.co/ISedb46PF4"
+}
+]
+},
+"id_str": "2090073047151657245",
+"text": "At inference time, we perform speculative decoding on the largest model using the smaller submodels as drafts. Because of nesting, memory and activations are shared, which amortizes the draft overhead\n\nThis translates to 10-30% faster decoding compared to the baseline https://t.co/ISedb46PF4",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073047151657245"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/ISedb46PF4",
+"expanded_url": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+269,
+292
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZncWoAAz2xc.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ISedb46PF4"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZncWoAAz2xc.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073047151657245": {
+"__typename": "Tweet",
+"favorite_count": 27,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073046530785761",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+268
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/ISedb46PF4",
+"expanded_url": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"indices": [
+269,
+292
+],
+"url": "https://t.co/ISedb46PF4"
+}
+]
+},
+"id_str": "2090073047151657245",
+"text": "At inference time, we perform speculative decoding on the largest model using the smaller submodels as drafts. Because of nesting, memory and activations are shared, which amortizes the draft overhead\n\nThis translates to 10-30% faster decoding compared to the baseline https://t.co/ISedb46PF4",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073047151657245"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/ISedb46PF4",
+"expanded_url": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+269,
+292
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZncWoAAz2xc.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/ISedb46PF4"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073047151657245/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZncWoAAz2xc.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"conversation_count": 1,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 24,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073046052688065",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 2,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+275
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/C8wIgznf39",
+"expanded_url": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"indices": [
+276,
+299
+],
+"url": "https://t.co/C8wIgznf39"
+}
+]
+},
+"id_str": "2090073046530785761",
+"text": "In Matryoshka suites, all submodels are trained in the same process. This lets us perform student-teacher online distillation for free during pretraining\nAs a result, Matryoshka submodels are much better aligned with each other, benefitting from both nesting and distillation https://t.co/C8wIgznf39",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073046530785761"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/C8wIgznf39",
+"expanded_url": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+276,
+299
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZncXcAAGaWs.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 525,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 608,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 862,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/C8wIgznf39"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 525,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 608,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 862,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZncXcAAGaWs.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073046530785761": {
+"__typename": "Tweet",
+"favorite_count": 24,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073046052688065",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+275
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/C8wIgznf39",
+"expanded_url": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"indices": [
+276,
+299
+],
+"url": "https://t.co/C8wIgznf39"
+}
+]
+},
+"id_str": "2090073046530785761",
+"text": "In Matryoshka suites, all submodels are trained in the same process. This lets us perform student-teacher online distillation for free during pretraining\nAs a result, Matryoshka submodels are much better aligned with each other, benefitting from both nesting and distillation https://t.co/C8wIgznf39",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073046530785761"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/C8wIgznf39",
+"expanded_url": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+276,
+299
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZncXcAAGaWs.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 525,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 608,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 862,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/C8wIgznf39"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 3
+},
+{
+"h": 675,
+"w": 675,
+"x": 525,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 608,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 862,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073046530785761/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZncXcAAGaWs.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"conversation_count": 2,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 23,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073045553541251",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 1,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+195
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/XTHfuhlxbz",
+"expanded_url": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"indices": [
+196,
+219
+],
+"url": "https://t.co/XTHfuhlxbz"
+}
+]
+},
+"id_str": "2090073046052688065",
+"text": "The performance of our Matryoshka suite is on par with a standard suite trained on the same data, and consistently improves over an iso-FLOPs suite (where FLOPs are measured as total suite FLOPs) https://t.co/XTHfuhlxbz",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073046052688065"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/XTHfuhlxbz",
+"expanded_url": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+196,
+219
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnXW0AAzL_a.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/XTHfuhlxbz"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnXW0AAzL_a.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073046052688065": {
+"__typename": "Tweet",
+"favorite_count": 23,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073045553541251",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+195
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/XTHfuhlxbz",
+"expanded_url": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"indices": [
+196,
+219
+],
+"url": "https://t.co/XTHfuhlxbz"
+}
+]
+},
+"id_str": "2090073046052688065",
+"text": "The performance of our Matryoshka suite is on par with a standard suite trained on the same data, and consistently improves over an iso-FLOPs suite (where FLOPs are measured as total suite FLOPs) https://t.co/XTHfuhlxbz",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073046052688065"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/XTHfuhlxbz",
+"expanded_url": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+196,
+219
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnXW0AAzL_a.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/XTHfuhlxbz"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 353,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 394,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 521,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073046052688065/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnXW0AAzL_a.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"conversation_count": 1,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 43,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073045146677693",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 1,
+"retweet_count": 1,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+278
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/JPlne8QGaH",
+"expanded_url": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"indices": [
+279,
+302
+],
+"url": "https://t.co/JPlne8QGaH"
+}
+]
+},
+"id_str": "2090073045553541251",
+"text": "In a Matryoshka suite, each submodel feeds its output to another layer stack corresponding to the next submodel, and so on\nContrarily to past work, our design lets each submodel have an adjustable width and depth, providing a large design space for memory and compute footprints https://t.co/JPlne8QGaH",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073045553541251"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/JPlne8QGaH",
+"expanded_url": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+279,
+302
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnhX0AAXq6n.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 738,
+"w": 738,
+"x": 380,
+"y": 0
+},
+{
+"h": 738,
+"w": 647,
+"x": 426,
+"y": 0
+},
+{
+"h": 738,
+"w": 369,
+"x": 565,
+"y": 0
+},
+{
+"h": 738,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 738,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 738,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 738,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 418,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/JPlne8QGaH"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 738,
+"w": 738,
+"x": 380,
+"y": 0
+},
+{
+"h": 738,
+"w": 647,
+"x": 426,
+"y": 0
+},
+{
+"h": 738,
+"w": 369,
+"x": 565,
+"y": 0
+},
+{
+"h": 738,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnhX0AAXq6n.jpg",
+"width": 1200,
+"height": 738
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073045553541251": {
+"__typename": "Tweet",
+"favorite_count": 43,
+"in_reply_to_screen_name": "nthngdy",
+"in_reply_to_status_id_str": "2090073045146677693",
+"in_reply_to_user_id_str": "1455213896558682114",
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+278
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/JPlne8QGaH",
+"expanded_url": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"indices": [
+279,
+302
+],
+"url": "https://t.co/JPlne8QGaH"
+}
+]
+},
+"id_str": "2090073045553541251",
+"text": "In a Matryoshka suite, each submodel feeds its output to another layer stack corresponding to the next submodel, and so on\nContrarily to past work, our design lets each submodel have an adjustable width and depth, providing a large design space for memory and compute footprints https://t.co/JPlne8QGaH",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073045553541251"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/JPlne8QGaH",
+"expanded_url": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+279,
+302
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZnhX0AAXq6n.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 738,
+"w": 738,
+"x": 380,
+"y": 0
+},
+{
+"h": 738,
+"w": 647,
+"x": 426,
+"y": 0
+},
+{
+"h": 738,
+"w": 369,
+"x": 565,
+"y": 0
+},
+{
+"h": 738,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 738,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 738,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 738,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 418,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/JPlne8QGaH"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 738,
+"w": 738,
+"x": 380,
+"y": 0
+},
+{
+"h": 738,
+"w": 647,
+"x": 426,
+"y": 0
+},
+{
+"h": 738,
+"w": 369,
+"x": 565,
+"y": 0
+},
+{
+"h": 738,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073045553541251/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZnhX0AAXq6n.jpg",
+"width": 1200,
+"height": 738
+}
+],
+"conversation_count": 1,
+"news_action_type": "conversation",
+"parent": {
+"favorite_count": 542,
+"lang": "en",
+"possibly_sensitive": false,
+"reply_count": 21,
+"retweet_count": 48,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+285
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/3lTM1ERPfU",
+"expanded_url": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"indices": [
+284,
+307
+],
+"url": "https://t.co/3lTM1ERPfU"
+}
+]
+},
+"id_str": "2090073045146677693",
+"text": "🧵New paper: Matryoshka LM Suites\n\nInstead of training all models of a suite independently, we nest them within a single architecture and train the suite in a single run =&gt; much less compute, same performance\n\nAlso allows free distillation, better speculative decoding &amp; more 👇 https://t.co/3lTM1ERPfU",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073045146677693"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/3lTM1ERPfU",
+"expanded_url": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+284,
+307
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpcW8AAF1uJ.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 413,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 454,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 581,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/3lTM1ERPfU"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 413,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 454,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 581,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpcW8AAF1uJ.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"isEdited": false,
+"isStaleEdit": false
+},
+"isEdited": false,
+"isStaleEdit": false
+},
+"2090073045146677693": {
+"__typename": "Tweet",
+"favorite_count": 542,
+"lang": "en",
+"possibly_sensitive": false,
+"created_at": "2026-08-19T13:47:00.000Z",
+"display_text_range": [
+0,
+285
+],
+"entities": {
+"media": [
+{
+"display_url": "pic.x.com/3lTM1ERPfU",
+"expanded_url": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"indices": [
+284,
+307
+],
+"url": "https://t.co/3lTM1ERPfU"
+}
+]
+},
+"id_str": "2090073045146677693",
+"text": "🧵New paper: Matryoshka LM Suites\n\nInstead of training all models of a suite independently, we nest them within a single architecture and train the suite in a single run =&gt; much less compute, same performance\n\nAlso allows free distillation, better speculative decoding &amp; more 👇 https://t.co/3lTM1ERPfU",
+"user": {
+"id_str": "1455213896558682114",
+"name": "Nathan Godey",
+"screen_name": "nthngdy",
+"is_blue_verified": false,
+"profile_image_shape": "Circle",
+"verified": false,
+"profile_image_url_https": "https://pbs.twimg.com/profile_images/1567869078282412036/cR3oAaJM_normal.jpg"
+},
+"edit_control": {
+"edit_tweet_ids": [
+"2090073045146677693"
+],
+"editable_until_msecs": "1787150820000",
+"edits_remaining": "5",
+"is_edit_eligible": false
+},
+"mediaDetails": [
+{
+"display_url": "pic.x.com/3lTM1ERPfU",
+"expanded_url": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"ext_media_availability": {
+"status": "Available"
+},
+"indices": [
+284,
+307
+],
+"media_url_https": "https://pbs.twimg.com/media/HQCxZpcW8AAF1uJ.jpg",
+"original_info": {
+"focus_rects": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 413,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 454,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 581,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"height": 675,
+"width": 1200
+},
+"sizes": {
+"large": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"medium": {
+"h": 675,
+"resize": "fit",
+"w": 1200
+},
+"small": {
+"h": 383,
+"resize": "fit",
+"w": 680
+},
+"thumb": {
+"h": 150,
+"resize": "crop",
+"w": 150
+}
+},
+"type": "photo",
+"url": "https://t.co/3lTM1ERPfU"
+}
+],
+"photos": [
+{
+"backgroundColor": {
+"red": 204,
+"green": 214,
+"blue": 221
+},
+"cropCandidates": [
+{
+"h": 672,
+"w": 1200,
+"x": 0,
+"y": 0
+},
+{
+"h": 675,
+"w": 675,
+"x": 413,
+"y": 0
+},
+{
+"h": 675,
+"w": 592,
+"x": 454,
+"y": 0
+},
+{
+"h": 675,
+"w": 338,
+"x": 581,
+"y": 0
+},
+{
+"h": 675,
+"w": 1200,
+"x": 0,
+"y": 0
+}
+],
+"expandedUrl": "https://x.com/nthngdy/status/2090073045146677693/photo/1",
+"url": "https://pbs.twimg.com/media/HQCxZpcW8AAF1uJ.jpg",
+"width": 1200,
+"height": 675
+}
+],
+"conversation_count": 21,
+"news_action_type": "conversation",
+"isEdited": false,
+"isStaleEdit": false
+}
+}

@@ -1,0 +1,15 @@
+[project]
+name = "thread2social"
+version = "0.1.0"
+description = "Republish an X thread to your own Bluesky and Mastodon accounts"
+requires-python = ">=3.10"
+dependencies = ["atproto>=0.0.55,<0.1", "pillow>=10"]
+
+[project.optional-dependencies]
+graphemes = ["regex>=2024.0"]
+
+[project.scripts]
+thread2social = "thread2social.cli:main"
+
+[tool.setuptools]
+packages = ["thread2social"]
