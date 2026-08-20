@@ -90,6 +90,7 @@ must not be able to post as `colab-links`.
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
+| `--doctor` | check every layer and print which one is broken (see below) |
 | `--install-listener` | install the launchd agent for the browser shortcut, print its token |
 | `--uninstall-listener` | remove that agent |
 
@@ -143,10 +144,38 @@ ready-to-run command on the clipboard for a terminal.
 
 ## When it breaks
 
+Start here, always:
+
+```bash
+xthread2social --doctor
+```
+
+Five independent things can stop a publish — the env file, the Keychain secrets, the launchd
+agent, X's syndication endpoint, and a stale copy of the userscript in the browser — and from
+inside Chrome they all surface as the same "listener not reachable". `--doctor` walks them in
+order, prints a line per layer, tails the listener log, and logs in to both accounts without
+posting. Fix the topmost `FAIL`; anything below it is usually a consequence.
+
+Two failures worth naming, because both cost an afternoon here:
+
+- **`serve binary`** — a plist pointing at a path that no longer exists (a moved or rebuilt
+  venv) loads cleanly and then resets every connection. `--install-listener` again, from the
+  interpreter the package is actually installed in.
+- **`userscript (github)`** — reloading an x.com page does *not* reload the script. Tampermonkey
+  swaps in a new copy only on an `@version` bump, so reinstall over the top from the raw URL.
+  Every overlay prints its own version (`… · v0.5.1`) precisely so a stale copy is visible.
+
+Publishes through the browser are logged with timestamps to
+`~/.local/share/xthread2social/serve.log`, trimmed at 512 KiB so it never needs attention.
+The per-thread ledger sits beside it in `ledger.json`; deleting an entry makes that thread
+publishable again, which is the only manual surgery this tool has.
+
 The syndication endpoint is undocumented (it powers Vercel's `react-tweet`). If it stops
 serving, `xthread2social --from-json` still accepts a thread from any source — that's the
 fallback path, and the reason `thread.json` is the only interface between reading and posting.
+`--doctor` fetches one ancient public tweet and checks the payload's *shape*, so a silent
+change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 
 ```bash
-python3 -m unittest discover -s tests      # 43 tests, all offline
+python3 -m unittest discover -s tests      # 60 tests, offline except one Keychain round-trip
 ```

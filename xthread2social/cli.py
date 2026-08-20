@@ -145,6 +145,9 @@ def main(argv=None):
                     help="prompt for a credential (not echoed) and store it in the Keychain")
     ap.add_argument("--check", action="store_true",
                     help="verify credentials for the selected targets and exit")
+    ap.add_argument("--doctor", action="store_true",
+                    help="check every layer (config, keychain, launchd agent, X's endpoint, "
+                         "userscript version, credentials) and say which one is broken")
     ap.add_argument("--post", action="store_true", help="actually publish (default: preview)")
     ap.add_argument("--to", default="bluesky,mastodon", help="targets (default both)")
     ap.add_argument("--from-json", metavar="PATH", help="read a Thread from JSON ('-' for stdin) "
@@ -196,6 +199,10 @@ def main(argv=None):
               f"Paste this token into the userscript once (Tampermonkey menu ->\n"
               f'"Set publish token" on an x.com tab):\n\n    {token}\n')
         return 0
+
+    if args.doctor:
+        from . import doctor
+        return doctor.run(check_credentials, args)
 
     if args.check:
         return check_credentials(args)

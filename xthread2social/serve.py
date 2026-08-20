@@ -17,7 +17,7 @@ import sys
 import traceback
 from contextlib import redirect_stdout
 
-from . import config
+from . import __version__, config
 from .cli import attribution_for, build_targets, credit_for, publish as do_publish
 from .ledger import DEFAULT as LEDGER_PATH
 from .read_syndication import IncompleteError, ReadError, read_thread
@@ -25,6 +25,26 @@ from .targets import render
 
 LOG = LEDGER_PATH.parent / "serve.log"
 MAX_BODY = 64 * 1024
+MAX_LOG = 512 * 1024
+
+
+def log(msg):
+    """Append one timestamped line, keeping the file bounded.
+
+    launchd's own stderr file is easy to lose track of and nothing rotates it; a log that
+    grows forever is a log nobody opens. When the file passes MAX_LOG the older half is
+    dropped, which keeps months of ordinary use in a file small enough to read at once.
+    """
+    import time
+    try:
+        LOG.parent.mkdir(parents=True, exist_ok=True)
+        if LOG.exists() and LOG.stat().st_size > MAX_LOG:
+            tail = LOG.read_bytes()[-MAX_LOG // 2:].split(b"\n", 1)[-1]
+            LOG.write_bytes(b"[log trimmed]\n" + tail)
+        with open(LOG, "a") as fh:
+            fh.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except OSError:
+        pass                                     # never fail a publish over a log write
 
 
 class Args:
@@ -88,9 +108,10 @@ def route_publish(payload):
     targets = build_targets(args)
     if not targets:
         return {"error": f"no target configured - see {config.PATH}"}
+    log(f"publish {thread.source_url} -> {', '.join(t.name for t in targets)}")
     LOG.parent.mkdir(parents=True, exist_ok=True)
-    with open(LOG, "a") as log:
-        with redirect_stdout(log):
+    with open(LOG, "a") as fh:
+        with redirect_stdout(fh):
             failures = do_publish(thread, args, targets)
     from .ledger import Ledger
     result, handle = {}, config.get("ATPROTO_HANDLE", "")
@@ -125,9 +146,12 @@ def handle(method, path, headers, body):
     if not token:
         return 503, {"error": "listener has no token; run xthread2social --install-listener"}
     if headers.get("x-token") != token:
+        # Logged: "the token is not accepted" is otherwise indistinguishable from "the agent
+        # is not running", and that guess costs a reinstall.
+        log(f"{method} {path} 403 bad token")
         return 403, {"error": "bad or missing X-Token"}
     if path == "/ping":
-        return 200, {"ok": True, "version": 1}
+        return 200, {"ok": True, "version": __version__}
     if method != "POST" or path not in ROUTES:
         return 404, {"error": f"no route for {method} {path}"}
     try:
@@ -135,17 +159,22 @@ def handle(method, path, headers, body):
     except ValueError as e:
         return 400, {"error": f"bad json: {e}"}
     try:
-        return 200, ROUTES[path](payload)
+        out = ROUTES[path](payload)
+        log(f"{method} {path} 200")
+        return 200, out
     except IncompleteError as e:
         # Not an error the user can fix by editing a URL: the replies may simply be other
         # people's. Hand it back as a question so the overlay can offer "publish anyway".
+        log(f"{method} {path} needs_confirm: {e}")
         return 200, {"needs_confirm": str(e)}
     except ReadError as e:
+        log(f"{method} {path} 400 {e}")
         return 400, {"error": str(e)}
     except Exception as e:
+        log(f"{method} {path} 500 {type(e).__name__}: {e}")
         LOG.parent.mkdir(parents=True, exist_ok=True)
-        with open(LOG, "a") as log:
-            traceback.print_exc(file=log)
+        with open(LOG, "a") as fh:
+            traceback.print_exc(file=fh)
         return 500, {"error": f"{type(e).__name__}: {e}", "log": str(LOG)}
 
 

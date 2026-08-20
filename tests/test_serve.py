@@ -1,14 +1,28 @@
 """Listener routing: auth is checked before anything else, and bad input is a 4xx."""
 import json
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 from xthread2social import config, serve
+
+
+def _isolate_log(case):
+    """Point the listener log at a temp file. Without this the suite appends test traffic
+    (403s, deliberate 400s) to the real ~/.local/share log and poisons a later diagnosis."""
+    d = tempfile.TemporaryDirectory()
+    case.addCleanup(d.cleanup)
+    old = serve.LOG
+    serve.LOG = Path(d.name) / "serve.log"
+    case.addCleanup(lambda: setattr(serve, "LOG", old))
+    return serve.LOG
 
 
 class TestHandle(unittest.TestCase):
     def setUp(self):
         os.environ["LISTENER_TOKEN"] = "tok"
+        _isolate_log(self)
 
     def test_missing_token_is_rejected_before_any_work(self):
         status, body = serve.handle("POST", "/publish", {}, b'{"urls":["1"]}')
@@ -77,8 +91,27 @@ class TestListenerInstall(unittest.TestCase):
         self.assertEqual(sock["SockFamily"], "IPv4")
 
 
+class TestLog(unittest.TestCase):
+    def test_lines_are_timestamped_and_the_file_stays_bounded(self):
+        log = _isolate_log(self)
+        serve.log("hello")
+        self.assertRegex(log.read_text(), r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d hello$")
+        log.write_bytes(b"x\n" * serve.MAX_LOG)
+        serve.log("after")
+        self.assertLess(log.stat().st_size, serve.MAX_LOG)
+        self.assertIn("after", log.read_text())
+
+    def test_a_log_write_failure_never_breaks_a_request(self):
+        _isolate_log(self)
+        serve.LOG = Path("/nonexistent-dir-xthread2social/serve.log")
+        serve.log("dropped")                      # must not raise
+
+
 class TestIncompleteIsAQuestion(unittest.TestCase):
     """A tail with replies must come back as a confirmable question, not a dead error."""
+
+    def setUp(self):
+        _isolate_log(self)
 
     def test_needs_confirm_instead_of_400(self):
         from xthread2social import read_syndication as rs
@@ -116,6 +149,7 @@ class TestPreviewLabelsSplits(unittest.TestCase):
     or the overlay's "1 tweet -> 2 posts" looks like a stray tweet was picked up."""
 
     def test_parts_are_numbered_per_tweet(self):
+        _isolate_log(self)
         from xthread2social import serve as sv
         from xthread2social.model import Thread, Tweet
         long = Tweet("11", "x " * 400, "me")
