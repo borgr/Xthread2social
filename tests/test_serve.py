@@ -52,3 +52,26 @@ class TestReadRequest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestListenerInstall(unittest.TestCase):
+    def test_serve_binary_must_exist(self):
+        """A plist pointing at a missing binary loads and then resets every connection."""
+        import shutil
+        from pathlib import Path
+        from xthread2social import listener
+        found = shutil.which("xthread2social-serve")
+        if found:
+            self.assertTrue(Path(listener.serve_binary()).exists())
+        else:
+            with self.assertRaises(RuntimeError):
+                listener.serve_binary()
+
+    def test_plist_binds_loopback_only(self):
+        from xthread2social import listener
+        try:
+            sock = listener.plist_body()["Sockets"]["Listener"]
+        except RuntimeError:
+            self.skipTest("xthread2social-serve not installed")
+        self.assertEqual(sock["SockNodeName"], "127.0.0.1")
+        self.assertEqual(sock["SockFamily"], "IPv4")

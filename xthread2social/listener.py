@@ -20,10 +20,24 @@ TOKEN_NAME = "LISTENER_TOKEN"
 
 
 def serve_binary():
-    """The `xthread2social-serve` next to the running interpreter, so the agent uses the
-    same virtualenv as the CLI you installed - not whatever python launchd would find."""
-    cand = Path(sys.executable).parent / "xthread2social-serve"
-    return str(cand if cand.exists() else Path(sys.prefix) / "bin/xthread2social-serve")
+    """Absolute path to a real `xthread2social-serve`.
+
+    launchd gets no PATH and no virtualenv, so the plist must name the binary outright. It
+    must also *exist*: installing a plist that points at a missing path yields an agent that
+    loads fine and then resets every connection, which is a miserable thing to debug (it
+    happened - a run under a different interpreter wrote a path from an unrelated conda env).
+    """
+    import shutil
+    seen = []
+    for cand in (Path(sys.executable).parent / "xthread2social-serve",
+                 Path(sys.prefix) / "bin/xthread2social-serve",
+                 Path(shutil.which("xthread2social-serve") or "/nonexistent"),
+                 Path.home() / ".local/bin/xthread2social-serve"):
+        if cand.exists():
+            return str(cand.resolve())
+        seen.append(str(cand))
+    raise RuntimeError("cannot find xthread2social-serve; install the package first "
+                       "(looked in: " + ", ".join(seen) + ")")
 
 
 def plist_body():
