@@ -23,6 +23,15 @@ class ReadError(Exception):
     """The thread could not be read or failed a completeness gate."""
 
 
+class IncompleteError(ReadError):
+    """The tail may have a continuation below it - the only gate a human can overrule.
+
+    Separate from ReadError so callers can offer "post anyway" for this one case: replies to
+    the last tweet are usually other people's, and a single-tweet post with strangers'
+    replies is the common false positive.
+    """
+
+
 def parse_ids(urls):
     """Tweet ids from any mix of URLs or bare ids, deduped and numerically sorted.
     Order-insensitive by design: snowflake ids are time-ordered, so the caller can
@@ -158,11 +167,11 @@ def check(chain, declared_root="", allow_incomplete=False):
     warnings = []
     # Nothing proves the tail is the end, but replies to it mean there may be more below.
     if not declared_root and chain[-1].reply_count:
-        msg = (f"the last tweet ({chain[-1].id}) has {chain[-1].reply_count} repl(y/ies) - if one "
-               f"is the author's own continuation the thread is longer than this. Pass the real "
-               f"last tweet's URL, or re-run with --allow-incomplete.")
+        msg = (f"the last tweet ({chain[-1].id}) has {chain[-1].reply_count} repl(y/ies) - if any "
+               f"is the author's own continuation, the thread is longer than what was read. "
+               f"Replies from other people are harmless.")
         if not allow_incomplete:
-            raise ReadError(msg)
+            raise IncompleteError(msg)
         warnings.append(msg)
     av = [t.id for t in chain if any(m.kind != "photo" for m in t.media)]
     if av:

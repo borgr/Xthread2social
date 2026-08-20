@@ -89,6 +89,12 @@ when `in_reply_to_status_id_str` is null or the author changes, so the declared 
 *confirmation*, not a requirement — nice, because "last" is the end the browser can see
 (you're scrolled there) and the CLI can't infer.
 
+**The tail gate is a question, not a wall.** Replies to the last tweet are usually other
+people's, so refusing outright makes single-tweet posts unpostable. `IncompleteError` is a
+distinct exception: the CLI prints how to override it, and the overlay shows "publish anyway"
+with a prompt to look below the tweet first. Every other gate stays fatal - only a human
+looking at the page can settle this one.
+
 **Detecting a short capture without a declared root:** the last tweet's `conversation_count`.
 On the verified thread it was `1` for a mid-thread tweet — i.e. it counts replies. So
 `conversation_count > 0` on the tweet you called last means *there may be another self-reply

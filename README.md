@@ -88,7 +88,7 @@ must not be able to post as `colab-links`.
 | `--post` | actually publish (everything is preview-only by default) |
 | `--to bluesky` / `--to mastodon` | one target instead of both |
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
-| `--allow-incomplete` | post even though the last tweet may have a continuation |
+| `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--install-listener` | install the launchd agent for the browser shortcut, print its token |
 | `--uninstall-listener` | remove that agent |

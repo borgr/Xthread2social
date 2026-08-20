@@ -11,7 +11,7 @@ import sys
 from . import config
 from .ledger import Ledger
 from .model import Thread
-from .read_syndication import ReadError, read_thread
+from .read_syndication import IncompleteError, ReadError, read_thread
 from .targets import Bluesky, Mastodon, PostError, render
 
 
@@ -211,6 +211,10 @@ def main(argv=None):
             if not args.urls:
                 ap.error("give at least one tweet URL, or --from-json")
             thread = read_thread(args.urls, allow_incomplete=args.allow_incomplete)
+    except IncompleteError as e:
+        print(f"[read] {e}\n       pass the real last tweet's URL, or re-run with "
+              f"--allow-incomplete", file=sys.stderr)
+        return 2
     except ReadError as e:
         print(f"[read] {e}", file=sys.stderr)
         return 2

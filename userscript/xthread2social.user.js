@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.3.0
+// @version      0.4.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -126,7 +126,7 @@
 
   const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
 
-  function showPreview(urls, data) {
+  function showPreview(urls, data, allow) {
     const kinds = Object.keys(data.targets);
     const body = shell(`@${data.author} - ${data.tweets} tweets`,
                        kinds.map(k => `${k}: ${data.targets[k].length} posts`).join('   ·   '));
@@ -144,7 +144,7 @@
     body.querySelector('.cancel').onclick = close;
     body.querySelector('.go').onclick = () => {
       const to = [...body.querySelectorAll('.t:checked')].map(c => c.value);
-      if (to.length) doPublish(urls, to);
+      if (to.length) doPublish(urls, to, allow);
     };
   }
 
@@ -164,18 +164,43 @@
     body.querySelector('.cancel').onclick = close;
   }
 
-  async function doPublish(urls, to) {
+  async function doPublish(urls, to, allow) {
     shell('Xthread2social', 'publishing - uploading images, then posting…');
-    try { showResult(await call('/publish', {urls, to})); } catch (e) { showError(e); }
+    try {
+      showResult(await call('/publish', {urls, to, allow_incomplete: !!allow}));
+    } catch (e) { showError(e); }
   }
 
-  async function run() {
+  // The reader refuses to post a thread whose last tweet has replies, because one of them
+  // might be the author's own continuation. Usually they are strangers' replies, and only a
+  // human looking at the page can tell - so ask instead of failing.
+  function askIncomplete(urls, warning) {
+    const body = shell('Is this the whole thread?', '');
+    body.innerHTML = `<div class="warn">${esc(warning)}</div>
+      <div class="post">Scroll down and check whether the author replied to themselves below
+      the last tweet. If the replies are other people's, publish anyway.</div>
+      <div class="row"><span style="flex:1"></span>
+      <button class="cancel">Cancel</button>
+      <button class="go">Publish anyway</button></div>`;
+    body.querySelector('.cancel').onclick = close;
+    body.querySelector('.go').onclick = () => preview(urls, true);
+  }
+
+  async function preview(urls, allow) {
+    shell('Xthread2social',
+          `reading the thread (${urls.length > 1 ? 'both ends given' : 'walking back from this tweet'})…`);
+    try {
+      const data = await call('/preview', {urls, allow_incomplete: !!allow});
+      if (data.needs_confirm) return askIncomplete(urls, data.needs_confirm);
+      showPreview(urls, data, allow);
+    } catch (e) { showError(e); }
+  }
+
+  function run() {
     if (!token()) return askToken(true);
     const urls = urlsForRequest();
     if (!urls) return showError(new Error('no tweets found on this page - reload and retry'));
-    shell('Xthread2social',
-          `reading the thread (${urls.length > 1 ? 'both ends given' : 'walking back from this tweet'})…`);
-    try { showPreview(urls, await call('/preview', {urls})); } catch (e) { showError(e); }
+    preview(urls, false);
   }
 
   function askToken(thenRun) {
@@ -260,7 +285,7 @@
     } catch (e) {
       listener = String(e.message || e);
     }
-    const body = shell('Xthread2social self-test', `script v0.3.0 running on ${location.host}`);
+    const body = shell('Xthread2social self-test', `script v0.4.0 running on ${location.host}`);
     body.innerHTML = [`hotkey: ${hotkeyLabel(hotkey())}`,
                       `tweets found on this page: ${ids.length}`,
                       `token stored: ${token() ? 'yes' : 'no'}`,

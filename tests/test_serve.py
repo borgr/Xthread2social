@@ -75,3 +75,37 @@ class TestListenerInstall(unittest.TestCase):
             self.skipTest("xthread2social-serve not installed")
         self.assertEqual(sock["SockNodeName"], "127.0.0.1")
         self.assertEqual(sock["SockFamily"], "IPv4")
+
+
+class TestIncompleteIsAQuestion(unittest.TestCase):
+    """A tail with replies must come back as a confirmable question, not a dead error."""
+
+    def test_needs_confirm_instead_of_400(self):
+        from xthread2social import read_syndication as rs
+
+        def fake(payload):
+            raise rs.IncompleteError("7 repl(y/ies)")
+
+        old, serve.ROUTES["/preview"] = serve.ROUTES["/preview"], fake
+        os.environ["LISTENER_TOKEN"] = "tok"
+        try:
+            status, body = serve.handle("POST", "/preview", {"x-token": "tok"}, b"{}")
+        finally:
+            serve.ROUTES["/preview"] = old
+        self.assertEqual(status, 200)
+        self.assertIn("7 repl", body["needs_confirm"])
+        self.assertNotIn("error", body)
+
+    def test_a_real_read_failure_is_still_an_error(self):
+        from xthread2social import read_syndication as rs
+
+        def fake(payload):
+            raise rs.ReadError("not a tweet URL")
+
+        old, serve.ROUTES["/preview"] = serve.ROUTES["/preview"], fake
+        try:
+            status, body = serve.handle("POST", "/preview", {"x-token": "tok"}, b"{}")
+        finally:
+            serve.ROUTES["/preview"] = old
+        self.assertEqual(status, 400)
+        self.assertIn("not a tweet URL", body["error"])

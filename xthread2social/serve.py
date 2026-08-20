@@ -20,7 +20,7 @@ from contextlib import redirect_stdout
 from . import config
 from .cli import attribution_for, build_targets, credit_for, publish as do_publish
 from .ledger import DEFAULT as LEDGER_PATH
-from .read_syndication import ReadError, read_thread
+from .read_syndication import IncompleteError, ReadError, read_thread
 from .targets import render
 
 LOG = LEDGER_PATH.parent / "serve.log"
@@ -124,6 +124,10 @@ def handle(method, path, headers, body):
         return 400, {"error": f"bad json: {e}"}
     try:
         return 200, ROUTES[path](payload)
+    except IncompleteError as e:
+        # Not an error the user can fix by editing a URL: the replies may simply be other
+        # people's. Hand it back as a question so the overlay can offer "publish anyway".
+        return 200, {"needs_confirm": str(e)}
     except ReadError as e:
         return 400, {"error": str(e)}
     except Exception as e:
