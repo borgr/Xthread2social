@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.2.0
+// @version      0.3.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -27,11 +27,24 @@
   'use strict';
 
   const ENDPOINT = 'http://127.0.0.1:8765';
-  // Option/Ctrl + Shift + X. Cmd+Shift+T is Chrome's "reopen closed tab" and cannot be
-  // intercepted; Option-based combos reach the page. On macOS Option+Shift+X also produces
-  // a dead-key character, so match on e.code as well as e.key.
-  const HOTKEY = e => e.shiftKey && (e.altKey || e.ctrlKey) && !e.metaKey &&
-                      (e.code === 'KeyX' || e.key === 'X' || e.key === 'x' || e.key === '˛');
+
+  // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
+  // Cmd+Shift+T, 1Password's Ctrl+Shift+X) are consumed before the page ever sees a keydown,
+  // so the only reliable fix for a clash is to pick a different combination - or to use the
+  // floating button, which no shortcut can shadow. Matched on e.code, because Option+letter
+  // on macOS reports a dead-key character in e.key.
+  const DEFAULT_HOTKEY = {code: 'KeyX', alt: true, shift: true, ctrl: false, meta: false};
+  const hotkey = () => Object.assign({}, DEFAULT_HOTKEY, GM_getValue('hotkey', null) || {});
+
+  function matches(e, hk) {
+    return e.code === hk.code && e.altKey === !!hk.alt && e.shiftKey === !!hk.shift &&
+           e.ctrlKey === !!hk.ctrl && e.metaKey === !!hk.meta;
+  }
+
+  function hotkeyLabel(hk) {
+    return [hk.ctrl && 'Ctrl', hk.alt && 'Option', hk.shift && 'Shift', hk.meta && 'Cmd',
+            hk.code.replace(/^(Key|Digit)/, '')].filter(Boolean).join('+');
+  }
 
   const pageAuthor = () => location.pathname.split('/')[1];
   const token = () => GM_getValue('token', '');
@@ -59,7 +72,7 @@
   function call(path, payload) {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
-        method: 'POST', url: ENDPOINT + path, timeout: 600000,
+        method: path === '/ping' ? 'GET' : 'POST', url: ENDPOINT + path, timeout: 600000,
         headers: {'Content-Type': 'application/json', 'X-Token': token()},
         data: JSON.stringify(payload),
         onload: r => {
@@ -177,15 +190,95 @@
     if (urls) GM_setClipboard('xthread2social ' + urls.join(' '));
   }
 
-  document.addEventListener('keydown', e => {
+  // ---------- triggers ----------
+
+  let capturing = null;                 // set while "Change hotkey" waits for a keypress
+
+  function onKeydown(e) {
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA)$/.test(t.tagName))) return;
-    if (!HOTKEY(e)) return;
+    if (capturing) {
+      if (e.key === 'Escape') { capturing = null; return finishCapture(null); }
+      if (/^(Alt|Shift|Control|Meta)$/.test(e.key)) return;   // wait for a real key
+      e.preventDefault();
+      e.stopPropagation();
+      const hk = {code: e.code, alt: e.altKey, shift: e.shiftKey,
+                  ctrl: e.ctrlKey, meta: e.metaKey};
+      capturing = null;
+      GM_setValue('hotkey', hk);
+      return finishCapture(hk);
+    }
+    if (!matches(e, hotkey())) return;
     e.preventDefault();
+    e.stopPropagation();
     run();
-  }, true);
+  }
+
+  // Both document and window, capture phase: X stops propagation on some keys, and a
+  // listener that only sees the bubble phase silently never fires.
+  document.addEventListener('keydown', onKeydown, true);
+  window.addEventListener('keydown', onKeydown, true);
+
+  function finishCapture(hk) {
+    const body = shell('Xthread2social', hk ? 'hotkey saved' : 'unchanged');
+    body.innerHTML = `<div class="post">${hk ? esc(hotkeyLabel(hk)) : 'cancelled'}</div>
+      <div class="row"><span style="flex:1"></span><button class="cancel">Close</button></div>`;
+    body.querySelector('.cancel').onclick = close;
+  }
+
+  function changeHotkey() {
+    capturing = true;
+    const body = shell('Press the new shortcut',
+                       'anything the browser or another extension already owns will never ' +
+                       'reach this page - if a combination does nothing, it is taken');
+    body.innerHTML = `<div class="post">current: ${esc(hotkeyLabel(hotkey()))}
+      \n(Esc cancels)</div>`;
+  }
+
+  // A button, because a hotkey can always be stolen by the browser or another extension.
+  function addButton() {
+    if (GM_getValue('hideButton', false) || document.getElementById('x2s-btn')) return;
+    const b = document.createElement('button');
+    b.id = 'x2s-btn';
+    b.textContent = '\u{1F501} publish';
+    b.title = `Xthread2social (${hotkeyLabel(hotkey())})`;
+    b.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:2147483646;' +
+      'background:#1d9bf0;color:#fff;border:0;border-radius:999px;padding:10px 16px;' +
+      'font:600 13px -apple-system,sans-serif;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.4)';
+    b.onclick = run;
+    document.body.appendChild(b);
+  }
+  addButton();
+  new MutationObserver(addButton).observe(document.body, {childList: true});
+
+  async function selfTest() {
+    const ids = collectIds();
+    let listener = 'not reachable';
+    try {
+      await call('/ping', {});
+      listener = 'reachable, token accepted';
+    } catch (e) {
+      listener = String(e.message || e);
+    }
+    const body = shell('Xthread2social self-test', `script v0.3.0 running on ${location.host}`);
+    body.innerHTML = [`hotkey: ${hotkeyLabel(hotkey())}`,
+                      `tweets found on this page: ${ids.length}`,
+                      `token stored: ${token() ? 'yes' : 'no'}`,
+                      `listener: ${listener}`]
+      .map(l => `<div class="post">${esc(l)}</div>`).join('') +
+      '<div class="row"><span style="flex:1"></span><button class="cancel">Close</button></div>';
+    body.querySelector('.cancel').onclick = close;
+  }
 
   GM_registerMenuCommand('Publish this thread…', run);
+  GM_registerMenuCommand('Change hotkey', changeHotkey);
   GM_registerMenuCommand('Set publish token', () => askToken(false));
+  GM_registerMenuCommand('Self-test (is it loaded?)', selfTest);
+  GM_registerMenuCommand('Hide/show the publish button', () => {
+    GM_setValue('hideButton', !GM_getValue('hideButton', false));
+    const b = document.getElementById('x2s-btn');
+    if (b) b.remove();
+    addButton();
+  });
   GM_registerMenuCommand('Copy CLI command (fallback)', copyCommand);
 })();

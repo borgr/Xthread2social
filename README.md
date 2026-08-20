@@ -110,11 +110,24 @@ Opening that link with Tampermonkey installed shows its install screen. On the f
 asks for the token above (also under Tampermonkey's menu → *Set publish token*); it is stored
 per-browser, which is why this public file contains no secret.
 
-Now, on any X thread: scroll to its last tweet and press **Option+Shift+X** (or Ctrl+Shift+X,
-or Tampermonkey's menu → *Publish this thread…*). An overlay shows the thread as it will be
-posted, per target, with warnings; **Publish** posts it and shows the links. Nothing leaves the
-browser and no terminal is involved. `Cmd+Shift+T` is not used — Chrome owns it for "reopen
-closed tab" and a page cannot intercept it.
+Now, on any X thread, scroll to its last tweet and either click the **🔁 publish** button in
+the bottom-right corner or press the hotkey (**Option+Shift+X** by default). An overlay shows
+the thread as it will be posted, per target, with warnings; **Publish** posts it and shows the
+links. Nothing leaves the browser and no terminal is involved.
+
+**When a hotkey does nothing, it is taken.** Chrome (`Cmd+Shift+T` = reopen closed tab) and
+other extensions (1Password grabs `Ctrl+Shift+X`) consume the keystroke before any page script
+sees it, and nothing in a userscript can outrank them. Two ways out:
+
+- Tampermonkey menu → *Change hotkey*, then press the combination you want. It is stored
+  per-browser, so it survives script updates.
+- Free the combination you'd rather use: `chrome://extensions/shortcuts` lists every
+  extension-level binding; clear or reassign the one holding it. 1Password's is on that page.
+
+The button never has this problem, which is why it is there. Tampermonkey menu →
+*Self-test (is it loaded?)* reports the running version, how many tweets it can see on the
+page, whether the token is stored, and whether the listener answers — the first thing to check
+if a press does nothing.
 
 How it works: the script collects tweet ids only and calls a listener on `127.0.0.1:8765`,
 which `launchd` starts **on connection** and reaps afterwards — no daemon, nothing to restart
