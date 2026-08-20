@@ -146,7 +146,7 @@ class Mastodon:
         import urllib.error
         import urllib.request
         headers = {"Authorization": f"Bearer {self.token}",
-                   "User-Agent": "thread2social/0.1"}
+                   "User-Agent": "xthread2social/0.1"}
         data = None
         if raw is not None:
             data = raw

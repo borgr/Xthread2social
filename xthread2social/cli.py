@@ -1,7 +1,7 @@
-"""thread2social — republish an X thread to your own Bluesky and Mastodon.
+"""xthread2social — republish an X thread to your own Bluesky and Mastodon.
 
-    thread2social <last-tweet-url> [<first-tweet-url>]      # preview (default)
-    thread2social <urls...> --post                          # publish
+    xthread2social <last-tweet-url> [<first-tweet-url>]      # preview (default)
+    xthread2social <urls...> --post                          # publish
 """
 import argparse
 import json
@@ -137,7 +137,7 @@ def publish(thread, args, targets):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="thread2social", description=__doc__,
+    ap = argparse.ArgumentParser(prog="xthread2social", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("urls", nargs="*", help="tweet URLs or ids; the newest is treated as "
                                            "the thread's last tweet, a second one as its first")
@@ -168,7 +168,7 @@ def main(argv=None):
         except (ValueError, RuntimeError) as e:
             print(f"[error] {e}", file=sys.stderr)
             return 2
-        print(f"[saved] {name} -> Keychain (service 'thread2social')")
+        print(f"[saved] {name} -> Keychain (service 'xthread2social')")
         args.to = [args.set_secret]
         return check_credentials(args)
 
@@ -213,7 +213,7 @@ def main(argv=None):
 
     targets = build_targets(args)
     if not targets:
-        print("[error] no target configured - see ~/.config/thread2social/env", file=sys.stderr)
+        print("[error] no target configured - see ~/.config/xthread2social/env", file=sys.stderr)
         return 2
     return 1 if publish(thread, args, targets) else 0
 

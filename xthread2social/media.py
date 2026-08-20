@@ -4,7 +4,7 @@ import urllib.request
 
 from .textutil import MAX_IMAGES
 
-UA = {"User-Agent": "Mozilla/5.0 (compatible; thread2social/0.1)"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; xthread2social/0.1)"}
 BLUESKY_BLOB_CAP = 976_000          # under Bluesky's ~1MB blob limit, with headroom
 
 

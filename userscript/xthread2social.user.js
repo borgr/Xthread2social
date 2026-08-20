@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         thread2social — copy thread ends
-// @namespace    https://github.com/borgr/thread2social
+// @name         Xthread2social — copy thread ends
+// @namespace    https://github.com/borgr/Xthread2social
 // @version      0.1.0
-// @description  On an X thread, copy a ready-to-run thread2social command for the thread you are looking at.
+// @description  On an X thread, copy a ready-to-run xthread2social command for the thread you are looking at.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
-// @downloadURL  https://raw.githubusercontent.com/borgr/thread2social/main/userscript/thread2social.user.js
-// @updateURL    https://raw.githubusercontent.com/borgr/thread2social/main/userscript/thread2social.user.js
+// @downloadURL  https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
+// @updateURL    https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
 // @grant        GM_setClipboard
 // @grant        GM_registerMenuCommand
 // @run-at       document-idle
@@ -36,8 +36,8 @@
     const first = `https://x.com/${pageAuthor()}/status/${ids[0]}`;
     const last = `https://x.com/${pageAuthor()}/status/${ids[ids.length - 1]}`;
     // Both ends when we saw more than one, so the CLI can *prove* the chain is complete.
-    return {n: ids.length, cmd: ids.length > 1 ? `thread2social ${last} ${first}`
-                                              : `thread2social ${last}`};
+    return {n: ids.length, cmd: ids.length > 1 ? `xthread2social ${last} ${first}`
+                                              : `xthread2social ${last}`};
   }
 
   function toast(msg, bad) {
@@ -52,7 +52,7 @@
 
   function run() {
     const got = command();
-    if (!got) return toast('thread2social: no tweets found — scroll the thread first', true);
+    if (!got) return toast('xthread2social: no tweets found — scroll the thread first', true);
     GM_setClipboard(got.cmd);
     // The count is informational only: the CLI re-walks the chain and refuses to post if
     // the tail may have a continuation. Scrolling to the end is still on you.
@@ -65,5 +65,5 @@
       run();
     }
   });
-  GM_registerMenuCommand('Copy thread2social command', run);
+  GM_registerMenuCommand('Copy xthread2social command', run);
 })();

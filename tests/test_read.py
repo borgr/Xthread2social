@@ -3,8 +3,8 @@ import json
 import pathlib
 import unittest
 
-from thread2social.model import Thread
-from thread2social.read_syndication import ReadError, check, parse_ids, to_tweet, walk
+from xthread2social.model import Thread
+from xthread2social.read_syndication import ReadError, check, parse_ids, to_tweet, walk
 
 RAW = json.loads((pathlib.Path(__file__).parent / "fixtures/nthngdy_raw.json").read_text())
 TAIL, ROOT = "2090073048565072360", "2090073045146677693"

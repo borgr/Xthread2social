@@ -7,7 +7,7 @@ the functions when the upstream checkout is present and skip when it isn't.
 import pathlib
 import unittest
 
-import thread2social.textutil as tu
+import xthread2social.textutil as tu
 
 UPSTREAM = pathlib.Path.home() / "PycharmProjects/discord_atproto_bridge/relay.py"
 FUNCS = ["display_for", "_default_url_eff", "_url_reductions", "_eff",

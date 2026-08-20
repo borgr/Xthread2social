@@ -3,10 +3,10 @@ import json
 import pathlib
 import unittest
 
-from thread2social.model import Media, Thread, Tweet
-from thread2social.read_syndication import walk
-from thread2social.targets import render
-from thread2social.textutil import chunk_for_bluesky, glen
+from xthread2social.model import Media, Thread, Tweet
+from xthread2social.read_syndication import walk
+from xthread2social.targets import render
+from xthread2social.textutil import chunk_for_bluesky, glen
 
 RAW = json.loads((pathlib.Path(__file__).parent / "fixtures/nthngdy_raw.json").read_text())
 CHAIN = walk("2090073048565072360", "2090073045146677693", fetcher=lambda i: RAW[i], pause=0)
@@ -71,7 +71,7 @@ class TestCredit(unittest.TestCase):
     """The opening credit must not reshape the thread to make room for itself."""
 
     def thread(self, first_text):
-        from thread2social.model import Thread, Tweet
+        from xthread2social.model import Thread, Tweet
         return Thread("someone", [Tweet(id="1", text=first_text, author="someone"),
                                   Tweet(id="2", text="second", author="someone")],
                       source_url="https://x.com/someone/status/1")

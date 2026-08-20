@@ -4,7 +4,7 @@ __pycache__/
 build/
 dist/
 .DS_Store
-# secrets never live here (Keychain + ~/.config/thread2social/env), but be explicit:
+# secrets never live here (Keychain + ~/.config/xthread2social/env), but be explicit:
 .env
 env
 *.token

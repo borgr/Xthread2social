@@ -1,4 +1,4 @@
-# thread2social — build plan
+# Xthread2social — build plan
 
 Point at an X/Twitter thread in the browser, press one button, and it posts to **your own**
 Bluesky + Mastodon accounts. Separate repo, separate credentials — no sharing with
@@ -21,7 +21,7 @@ Credential split is the point: the browser holds only a revocable, single-repo,
 `Actions: write` fine-grained PAT. The social write-credentials live as GitHub Secrets and
 never touch x.com.
 
-## Component A — `thread2social.user.js` (Tampermonkey)
+## Component A — `xthread2social.user.js` (Tampermonkey)
 
 `@match https://x.com/*/status/*`, `@connect api.github.com`, `@grant GM_xmlhttpRequest`,
 `GM_setValue`, `GM_setClipboard`.
@@ -63,7 +63,7 @@ JSON string. Media travel as **URLs**, not bytes — `pbs.twimg.com` is public a
 fetches them itself, which keeps the dispatch tiny. Response is `204` with no run id, so on
 success the script toasts a link to the repo's Actions tab.
 
-## Component B — private repo `thread2social`
+## Component B — private repo `xthread2social`
 
 ```
 post.py                     # the poster

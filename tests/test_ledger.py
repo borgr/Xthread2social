@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from thread2social.ledger import Ledger
+from xthread2social.ledger import Ledger
 
 
 class TestLedger(unittest.TestCase):

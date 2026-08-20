@@ -14,7 +14,7 @@ import urllib.request
 from .model import Media, Thread, Tweet
 
 ENDPOINT = "https://cdn.syndication.twimg.com/tweet-result?id={id}&token=a"
-UA = {"User-Agent": "Mozilla/5.0 (compatible; thread2social/0.1)"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; xthread2social/0.1)"}
 STATUS_RE = re.compile(r"(?:twitter\.com|x\.com)/[^/]+/status(?:es)?/(\d+)")
 MAX_HOPS = 100
 

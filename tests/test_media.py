@@ -2,7 +2,7 @@
 import io
 import unittest
 
-from thread2social.media import BLUESKY_BLOB_CAP, shrink
+from xthread2social.media import BLUESKY_BLOB_CAP, shrink
 
 
 def noisy_png(w, h):

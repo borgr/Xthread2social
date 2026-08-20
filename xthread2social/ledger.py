@@ -7,8 +7,8 @@ import json
 import os
 from pathlib import Path
 
-DEFAULT = Path(os.environ.get("THREAD2SOCIAL_HOME",
-                              Path.home() / ".local/share/thread2social")) / "ledger.json"
+DEFAULT = Path(os.environ.get("XTHREAD2SOCIAL_HOME",
+                              Path.home() / ".local/share/xthread2social")) / "ledger.json"
 
 
 class Ledger:

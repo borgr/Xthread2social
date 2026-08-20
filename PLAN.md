@@ -1,4 +1,4 @@
-# thread2social — build plan (v2)
+# Xthread2social — build plan (v2)
 
 Point it at an X thread; it republishes the thread to **my own** Bluesky + Mastodon.
 Supersedes `PLAN.v1.md` (userscript + GitHub Actions). Reason for the rewrite is at the end.
@@ -43,7 +43,7 @@ Validated 2026-08-19 on a real 8-tweet thread (`@nthngdy` 2090073045146677693 �
 `t.co` back to the real arxiv/HF links. Also confirmed: `quoted_tweet` inlines quotes,
 `parent` carries the previous tweet as a fallback if the flat field ever disappears.
 
-**Invocation takes both ends:** `thread2social <first_url> <last_url>`. That is not a
+**Invocation takes both ends:** `xthread2social <first_url> <last_url>`. That is not a
 UX wart, it is goal 3 — walking back from the last tweet and asserting it reaches the
 declared first tweet is a *deterministic* completeness proof. v1's "did I scroll far enough?"
 count could not do this. Hard gates before anything posts: chain reaches the root; every
@@ -52,7 +52,7 @@ hop contiguous; single author throughout (foreign replies mean the wrong `last_u
 ### Reader B — userscript (only if A dies or the thread is gated)
 
 Same `thread.json`, produced from the logged-in page and pasted in
-(`thread2social post --from-clipboard`). Written **only when needed** — a protected thread
+(`xthread2social post --from-clipboard`). Written **only when needed** — a protected thread
 or a dead syndication endpoint. Keeping it out of v1 removes the userscript, the PAT, the
 workflow, and the runner from the maintenance surface at once. `prinsss/twitter-web-exporter`
 (MIT) is the interceptor to adopt if that day comes.
@@ -65,7 +65,7 @@ of the loop. Fine-grained PAT expiry (30 days default, 1 year max, no renewal) w
 likely way v1 would quietly die.
 
 If phone-triggering is ever wanted, it bolts on behind this same CLI: a workflow that runs
-`thread2social <first> <last>`, dispatched by `curl`. Deferred, not designed out.
+`xthread2social <first> <last>`, dispatched by `curl`. Deferred, not designed out.
 
 ## Trigger: browser shortcut (Tampermonkey, deliberately dumb)
 
@@ -97,14 +97,14 @@ it catches the didn't-scroll-to-the-end case, which is the one that half-publish
 
 ### Handoff, in shipping order
 
-1. **Clipboard (v1.1, zero infra).** Script writes `thread2social <first> <last>` to the
+1. **Clipboard (v1.1, zero infra).** Script writes `xthread2social <first> <last>` to the
    clipboard and toasts. You paste into a terminal. Always works, nothing to keep alive.
 2. **Socket-activated localhost listener (v1.2, one keypress).** `GM_xmlhttpRequest` POSTs to
    `127.0.0.1:8765`; a launchd agent with a `Sockets` key starts the handler *on connection*
    and exits after — on-demand, no idle daemon, so goal 4 holds. You already run a launchd
    agent for the relay, so the pattern is known-good here. Bind to `localhost` only, require a
    shared token in the header so no other page can trigger a post.
-3. **Custom URL scheme (alternative to 2).** `thread2social://post?last=…` via a small
+3. **Custom URL scheme (alternative to 2).** `xthread2social://post?last=…` via a small
    registered app bundle. Same one-keypress result, no listening socket, but a heavier and
    more macOS-specific one-time setup. Pick 2 unless the socket bothers you.
 
@@ -151,7 +151,7 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
 
 1. **Accept 1..N tweet URLs, order-insensitive.** Snowflake ids are time-ordered, so the
    highest id is the tail and (if two or more are given) the lowest is the declared root.
-   `thread2social <url>` works; adding the other end upgrades the completeness check to proof.
+   `xthread2social <url>` works; adding the other end upgrades the completeness check to proof.
 2. **Strip X's appended media link by matching `mediaDetails[].url`.** A tweet with photos has
    a trailing `t.co` pointing at the image, which must not survive into the post.
    `display_text_range` looked like the way to trim it and is a trap — its indices are UTF-16
@@ -170,7 +170,7 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
    without it you get the preview and, on a terminal, a `Publish this now? [y/N]` prompt — so
    one paste from the browser shortcut suffices, but the shortcut itself is never one keystroke
    from a live post. Piped/scripted runs stay preview-only (no TTY, no prompt).
-6. **Config lives in `~/.config/thread2social/env`**, not `./.env` — the browser shortcut and
+6. **Config lives in `~/.config/xthread2social/env`**, not `./.env` — the browser shortcut and
    launchd handler run from an arbitrary cwd.
 7. **Grapheme length is optional-dependency, not required.** `regex`'s `\X` when importable,
    otherwise char count with a wider margin. Correct where it matters, still installs bare.

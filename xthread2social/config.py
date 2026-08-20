@@ -1,10 +1,10 @@
-"""Credentials from ~/.config/thread2social/env (not ./.env - the browser shortcut and
+"""Credentials from ~/.config/xthread2social/env (not ./.env - the browser shortcut and
 the launchd handler run from an arbitrary working directory)."""
 import os
 from pathlib import Path
 
-PATH = Path(os.environ.get("THREAD2SOCIAL_ENV",
-                           Path.home() / ".config/thread2social/env"))
+PATH = Path(os.environ.get("XTHREAD2SOCIAL_ENV",
+                           Path.home() / ".config/xthread2social/env"))
 
 
 def load(path=None):
@@ -27,7 +27,7 @@ def load(path=None):
 
 
 SECRETS = ("ATPROTO_APP_PASSWORD", "MASTODON_ACCESS_TOKEN")
-KEYCHAIN_SERVICE = "thread2social"
+KEYCHAIN_SERVICE = "xthread2social"
 
 
 def keychain(name, service=KEYCHAIN_SERVICE):

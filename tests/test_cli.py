@@ -5,7 +5,7 @@ import pathlib
 import unittest
 from contextlib import redirect_stdout
 
-from thread2social.cli import main
+from xthread2social.cli import main
 
 FIXTURE = pathlib.Path(__file__).parent / "fixtures/nthngdy_raw.json"
 
@@ -13,8 +13,8 @@ FIXTURE = pathlib.Path(__file__).parent / "fixtures/nthngdy_raw.json"
 class TestPreview(unittest.TestCase):
     def setUp(self):
         """A Thread JSON on disk, so no network and no credentials are involved."""
-        from thread2social.model import Thread
-        from thread2social.read_syndication import check, walk
+        from xthread2social.model import Thread
+        from xthread2social.read_syndication import check, walk
         raw = json.loads(FIXTURE.read_text())
         chain = walk("2090073048565072360", "2090073045146677693",
                      fetcher=lambda i: raw[i], pause=0)

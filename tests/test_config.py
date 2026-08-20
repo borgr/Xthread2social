@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from thread2social import config
+from xthread2social import config
 
 
 class TestConfig(unittest.TestCase):
@@ -69,11 +69,11 @@ class TestStore(unittest.TestCase):
 
     def test_round_trips_through_the_real_keychain(self):
         import subprocess
-        name = "THREAD2SOCIAL_TEST_SECRET"
+        name = "XTHREAD2SOCIAL_TEST_SECRET"
         try:
-            config.store(name, "abcd-1234", service="thread2social-test")
-            self.assertEqual(config.keychain(name, "thread2social-test"), "abcd-1234")
+            config.store(name, "abcd-1234", service="xthread2social-test")
+            self.assertEqual(config.keychain(name, "xthread2social-test"), "abcd-1234")
         finally:
             subprocess.run(["security", "delete-generic-password", "-s",
-                            "thread2social-test", "-a", name],
+                            "xthread2social-test", "-a", name],
                            capture_output=True)

@@ -1,11 +1,11 @@
-# thread2social
+# Xthread2social
 
 Republish an X thread to **your own** Bluesky and Mastodon accounts. No API keys, no server,
 no paid tier. Design and rationale: [PLAN.md](PLAN.md).
 
 ```bash
-thread2social https://x.com/someone/status/<last-tweet>          # preview (default)
-thread2social <last-tweet-url> <first-tweet-url> --post          # publish
+xthread2social https://x.com/someone/status/<last-tweet>          # preview (default)
+xthread2social <last-tweet-url> <first-tweet-url> --post          # publish
 ```
 
 Give it the **last** tweet of the thread; it walks backwards to the first. Adding the first
@@ -17,21 +17,21 @@ The Python tool must be installed on each machine — it needs local Python and 
 Keychain. Nothing but the code is machine-specific, so it is a clone plus one install:
 
 ```bash
-git clone https://github.com/borgr/thread2social ~/PycharmProjects/thread2social
-python3 -m venv ~/.venvs/thread2social
-~/.venvs/thread2social/bin/pip install -e ~/PycharmProjects/thread2social regex
-ln -s ~/.venvs/thread2social/bin/thread2social ~/.local/bin/thread2social   # must be on PATH
+git clone https://github.com/borgr/Xthread2social ~/PycharmProjects/Xthread2social
+python3 -m venv ~/.venvs/xthread2social
+~/.venvs/xthread2social/bin/pip install -e ~/PycharmProjects/Xthread2social regex
+ln -s ~/.venvs/xthread2social/bin/xthread2social ~/.local/bin/xthread2social   # must be on PATH
 ```
 
-`pipx install -e ~/PycharmProjects/thread2social` does the same in one line where pipx exists.
+`pipx install -e ~/PycharmProjects/Xthread2social` does the same in one line where pipx exists.
 The userscript is **not** installed from the clone — see [Browser shortcut](#browser-shortcut).
 
-Bare install needs only `atproto` and `pillow`. `pip install 'thread2social[graphemes]'` adds
+Bare install needs only `atproto` and `pillow`. `pip install 'xthread2social[graphemes]'` adds
 `regex`, which makes Bluesky's 300-**grapheme** limit exact instead of approximated.
 
 ## Configure
 
-`~/.config/thread2social/env` (not a repo-local `.env`, so the browser shortcut works from any
+`~/.config/xthread2social/env` (not a repo-local `.env`, so the browser shortcut works from any
 directory). Both targets are optional — an unconfigured one is skipped, not fatal.
 
 ```ini
@@ -52,7 +52,7 @@ Preferences → Development → New application, with scopes `read:accounts`, `w
 `--check` verify the token before a publish rather than during one.
 
 ```bash
-thread2social --set-secret bluesky      # or: --set-secret mastodon
+xthread2social --set-secret bluesky      # or: --set-secret mastodon
 ```
 
 It prompts without echoing, stores the value, and immediately verifies it by logging in.
@@ -60,7 +60,7 @@ Rotating is the same command. Avoid shell `read` one-liners for this: `read -rs 
 bash-only, and pasting a multi-line block lets `read` swallow the wrong line — both failed
 here, the second time storing an empty secret silently.
 
-Rotating is the same command with a new value. `thread2social --check` confirms it worked.
+Rotating is the same command with a new value. `xthread2social --check` confirms it worked.
 
 These are separate from the `discord_atproto_bridge` relay's credentials on purpose: this tool
 must not be able to post as `colab-links`.
@@ -96,7 +96,7 @@ must not be able to post as `colab-links`.
 Install it **from the URL**, not from your disk — that way a new machine gets it with one
 click and edits you push here reach every browser you use:
 
-<https://raw.githubusercontent.com/borgr/thread2social/main/userscript/thread2social.user.js>
+<https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js>
 
 Opening that link with Tampermonkey installed shows its install screen. `@updateURL` points at
 the same file, so Tampermonkey re-checks it and offers updates when `@version` in the header
@@ -104,7 +104,7 @@ goes up — bump that line whenever you change the script, or nothing will updat
 local file also works, but pins that browser to whatever the file said the day you imported it.)
 
 On a thread press
-**Ctrl/Cmd+Shift+T** and it copies a ready-to-run `thread2social …` command for the thread
+**Ctrl/Cmd+Shift+T** and it copies a ready-to-run `xthread2social …` command for the thread
 you're looking at. Paste it into a terminal: you get the preview, then `y` publishes. It
 collects tweet ids only — no parsing, no credentials in the browser.
 Scroll to the end of the thread first; the CLI still re-walks and re-verifies the chain.
@@ -115,7 +115,7 @@ page-context requests to anything else are blocked.
 ## When it breaks
 
 The syndication endpoint is undocumented (it powers Vercel's `react-tweet`). If it stops
-serving, `thread2social --from-json` still accepts a thread from any source — that's the
+serving, `xthread2social --from-json` still accepts a thread from any source — that's the
 fallback path, and the reason `thread.json` is the only interface between reading and posting.
 
 ```bash
