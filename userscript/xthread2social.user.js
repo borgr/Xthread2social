@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.5.0
+// @version      0.5.1
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -26,7 +26,8 @@
 (function () {
   'use strict';
 
-  const ENDPOINT = 'http://127.0.0.1:8765';
+  const VERSION = '0.5.1';                // shown in every overlay: the fastest way to
+  const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
   // Cmd+Shift+T, 1Password's Ctrl+Shift+X) are consumed before the page ever sees a keydown,
@@ -137,7 +138,8 @@
       const m = data.targets[k].length;
       return `${k}: ${m} post${m === 1 ? '' : 's'}` + (m > n ? ' (split to fit)' : '');
     }).join('   ·   ');
-    const body = shell(`@${data.author} - ${n} tweet${n === 1 ? '' : 's'}`, sub);
+    const body = shell(`@${data.author} - ${n} tweet${n === 1 ? '' : 's'}`,
+                       `${sub}   ·   v${VERSION}`);
     let html = data.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('');
     html += data.targets[shown].map((p, i) => {
       const bits = [`${i + 1}.`];
@@ -286,7 +288,7 @@
     } catch (e) {
       listener = String(e.message || e);
     }
-    const body = shell('Xthread2social self-test', `script v0.5.0 running on ${location.host}`);
+    const body = shell('Xthread2social self-test', `script v${VERSION} running on ${location.host}`);
     body.innerHTML = [`hotkey: ${hotkeyLabel(hotkey())}`,
                       `tweets found on this page: ${ids.length}`,
                       `token stored: ${token() ? 'yes' : 'no'}`,
