@@ -153,6 +153,26 @@ page-context requests to `127.0.0.1` are blocked. Tampermonkey's `GM_xmlhttpRequ
 If the listener is ever down, Tampermonkey's menu → *Copy CLI command (fallback)* puts a
 ready-to-run command on the clipboard for a terminal.
 
+## Giving it to someone else
+
+Everything is in this one repo: the Python runner and the userscript are two halves of the
+same install, not two projects. Nothing here is account- or machine-specific — no credential,
+no handle, no path — so a friend needs no fork and no edit:
+
+1. macOS with Python 3.10+. The browser shortcut is macOS-only: it is a launchd agent plus the
+   Keychain. The CLI itself is portable, but `--install-listener` is not.
+2. The three blocks above, in order: **Install** (clone, venv, `pip install -e . regex`,
+   symlink onto PATH), **Configure** (their own Bluesky app password and Mastodon access token
+   with `read:accounts`, `write:statuses`, `write:media`), **Browser shortcut**
+   (`--install-listener`, then install the userscript from the raw URL and paste the token it
+   printed).
+3. `xthread2social --doctor` first if anything looks wrong — it checks all five layers and is
+   the answer to almost every "it stopped working".
+
+The userscript is deliberately installed from the raw URL rather than from their clone, so
+pushed fixes reach their browser on the next update check. Their token is theirs: it is
+generated locally, lives in their Keychain, and is a capability for *their* listener only.
+
 ## When it breaks
 
 Start here, always:

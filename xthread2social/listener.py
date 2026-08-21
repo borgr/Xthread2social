@@ -13,7 +13,11 @@ from pathlib import Path
 
 from . import config
 
-LABEL = "com.lc.xthread2social"
+# Names the software, not the machine's owner: the agent is installed verbatim on anyone
+# else's Mac too, and the old "com.lc." label is booted out and deleted on the next
+# --install-listener (two plists binding 127.0.0.1:8765 would fight over the socket).
+LABEL = "io.github.borgr.xthread2social"
+LEGACY_LABELS = ("com.lc.xthread2social",)
 PLIST = Path.home() / "Library/LaunchAgents" / f"{LABEL}.plist"
 PORT = int(os.environ.get("XTHREAD2SOCIAL_PORT", "8765"))
 TOKEN_NAME = "LISTENER_TOKEN"
@@ -69,6 +73,11 @@ def install(rotate=False):
     with open(PLIST, "wb") as fh:
         plistlib.dump(plist_body(), fh)
     uid = os.getuid()
+    for old in LEGACY_LABELS:
+        _launchctl("bootout", f"gui/{uid}/{old}")
+        legacy = PLIST.parent / f"{old}.plist"
+        if legacy.exists():
+            legacy.unlink()
     _launchctl("bootout", f"gui/{uid}/{LABEL}")            # ignore "not loaded"
     r = _launchctl("bootstrap", f"gui/{uid}", str(PLIST))
     if r.returncode != 0:
@@ -79,6 +88,11 @@ def install(rotate=False):
 
 
 def uninstall():
+    for old in LEGACY_LABELS:
+        _launchctl("bootout", f"gui/{os.getuid()}/{old}")
+        legacy = PLIST.parent / f"{old}.plist"
+        if legacy.exists():
+            legacy.unlink()
     _launchctl("bootout", f"gui/{os.getuid()}/{LABEL}")
     _launchctl("unload", str(PLIST))
     if PLIST.exists():
