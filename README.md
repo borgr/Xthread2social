@@ -39,6 +39,7 @@ ATPROTO_HANDLE=you.bsky.social
 ATPROTO_APP_PASSWORD=keychain                # see below
 MASTODON_BASE_URL=https://your.instance
 MASTODON_ACCESS_TOKEN=keychain
+X_HANDLES=yourxname                          # optional; your own threads then go uncredited
 ```
 
 Secrets set to the literal `keychain` (or left blank) are read from the macOS Keychain, so
@@ -80,8 +81,13 @@ must not be able to post as `colab-links`.
 - Credits someone else's thread twice: `🔁 x-post from @author` at the bottom of the **first**
   post, and `— x-post from @author <source>` on the last. The opening line always appears —
   it shrinks to `🔁 x-post @author` or `🔁 @author` to avoid costing an extra post, and takes
-  the extra post if even the shortest wording will not fit. Neither appears on your own
-  threads; `--no-attribution` drops both.
+  the extra post if even the shortest wording will not fit. `--no-attribution` drops both.
+- **Your own thread carries nothing at all** — no credit line, no self-reference, and no link
+  back to X: reposting yourself is just posting. `--source-link` adds the bare tweet URL back
+  when you do want to point at the original. Which handles count as you comes from `X_HANDLES`
+  in the env file (comma-separated, `@` optional); with it unset, the Bluesky handle's first
+  label is used, so set it if your X and Bluesky names differ — otherwise your own threads get
+  credited to you as though a stranger wrote them.
 
 ## Useful flags
 
@@ -91,6 +97,8 @@ must not be able to post as `colab-links`.
 | `--to bluesky` / `--to mastodon` | one target instead of both |
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
 | `--note TEXT` | your own words above the author's text on the first post |
+| `--source-link` | on your own thread, link back to the tweet (off by default) |
+| `--no-attribution` | drop the credit lines on someone else's thread too |
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--doctor` | check every layer and print which one is broken (see below) |

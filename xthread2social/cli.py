@@ -52,17 +52,35 @@ def check_credentials(args):
     return 1 if bad else 0
 
 
+def _my_handles():
+    """Every X handle that counts as you.
+
+    X_HANDLES in the env file is the reliable answer (X, Bluesky and Mastodon names need not
+    agree); the Bluesky handle's first label is a fallback for the common case where they do.
+    """
+    names = {h.strip().lstrip("@").lower()
+             for h in config.get("X_HANDLES", "").split(",") if h.strip()}
+    if names:
+        return names
+    fallback = config.get("ATPROTO_HANDLE", "").split(".")[0].lower()
+    return {fallback} if fallback else set()
+
+
 def _is_mine(thread):
-    me = config.get("ATPROTO_HANDLE", "").split(".")[0]
-    return bool(me) and thread.author.lower() == me.lower()
+    return thread.author.lower() in _my_handles()
 
 
 def attribution_for(thread, args):
-    """Closing line: the source link, plus who wrote it when it isn't you."""
+    """Closing line: the source link, plus who wrote it when it isn't you.
+
+    Your own thread gets neither - reposting yourself is just posting, and a link back to X
+    on your own words reads as advertising X rather than crediting anyone. `--source-link`
+    adds the bare URL back for the times you do want to point at the original.
+    """
     if args.no_attribution:
         return ""
     if _is_mine(thread):
-        return f"\n\n{thread.source_url}"
+        return f"\n\n{thread.source_url}" if getattr(args, "source_link", False) else ""
     return f"\n\n— x-post from @{thread.author} {thread.source_url}"
 
 
@@ -168,6 +186,9 @@ def main(argv=None):
     ap.add_argument("--note", default="", metavar="TEXT",
                     help="your own words, prepended to the first post above the author's text")
     ap.add_argument("--no-attribution", action="store_true")
+    ap.add_argument("--source-link", action="store_true",
+                    help="on your own thread, still link back to the tweet (default: no "
+                         "credit line at all)")
     ap.add_argument("--install-listener", action="store_true",
                     help="install the launchd agent that lets the browser shortcut publish "
                          "without a terminal, and print the token to paste into Tampermonkey")
