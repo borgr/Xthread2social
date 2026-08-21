@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.6.0
+// @version      0.6.1
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -26,7 +26,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '0.6.0';                // shown in every overlay: the fastest way to
+  const VERSION = '0.6.1';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -266,6 +266,7 @@
       return finishCapture(hk);
     }
     if (!matches(e, hotkey())) return;
+    console.info(`[Xthread2social] hotkey ${hotkeyLabel(hotkey())} fired`);
     e.preventDefault();
     e.stopPropagation();
     run();
@@ -307,6 +308,13 @@
   }
   addButton();
   new MutationObserver(addButton).observe(document.body, {childList: true});
+
+  // One console line at load, because "is it even running?" is otherwise unanswerable: a
+  // disabled script, a duplicate install, and a stolen hotkey all look like nothing at all.
+  // If this line is absent from DevTools on a tweet page, no amount of pressing will help.
+  console.info(`[Xthread2social] v${VERSION} loaded - hotkey ${hotkeyLabel(hotkey())}, ` +
+               `button ${GM_getValue('hideButton', false) ? 'HIDDEN (menu re-shows it)' : 'shown'}, ` +
+               `token ${token() ? 'stored' : 'MISSING'}`);
 
   async function selfTest() {
     const ids = collectIds();
