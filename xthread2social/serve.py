@@ -142,13 +142,16 @@ def notify(thread, result):
     ok = [f"{k} {v['posts']}" for k, v in result.items() if not v["failed"]]
     bad = [k for k, v in result.items() if v["failed"]]
     msg = ("failed: " + ", ".join(bad)) if bad else ("posted " + ", ".join(ok))
+    if sys.platform == "darwin":
+        cmd = ["osascript", "-e",
+               f'display notification {shlex.quote(msg)} '
+               f'with title "Xthread2social" subtitle "@{thread.author}"']
+    else:
+        cmd = ["notify-send", f"Xthread2social - @{thread.author}", msg]
     try:
-        subprocess.run(["osascript", "-e",
-                        f'display notification {shlex.quote(msg)} '
-                        f'with title "Xthread2social" subtitle "@{thread.author}"'],
-                       capture_output=True, timeout=10)
+        subprocess.run(cmd, capture_output=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
-        pass
+        pass                                     # no notifier installed is not a failure
 
 
 ROUTES = {"/preview": route_preview, "/publish": route_publish}

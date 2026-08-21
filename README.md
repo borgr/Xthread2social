@@ -11,10 +11,23 @@ xthread2social <last-tweet-url> <first-tweet-url> --post          # publish
 Give it the **last** tweet of the thread; it walks backwards to the first. Adding the first
 tweet's URL too (either order) upgrades the completeness check from a warning to a proof.
 
+## Platforms
+
+macOS and Linux. The publishing engine is pure Python; the two platform-specific pieces are
+the secret store (Keychain / libsecret) and the socket-activated listener behind the browser
+shortcut (launchd / `systemd --user`). Both are installed by the same `--install-listener`,
+which picks the backend for you. Windows runs the CLI but not the listener: it has no socket
+activation, so the shortcut would need a permanently running local server — not built.
+
+**The Linux path is written but has not been run on a Linux box** (its unit text is covered by
+tests; the live end-to-end is macOS-only so far). If you are the first to try it,
+`xthread2social --doctor` names the layer that broke, and `journalctl --user -u 'xthread2social@*'`
+has the handler's own errors.
+
 ## Install (works the same on a new machine)
 
 The Python tool must be installed on each machine — it needs local Python and the local
-Keychain. Nothing but the code is machine-specific, so it is a clone plus one install:
+secret store. Nothing but the code is machine-specific, so it is a clone plus one install:
 
 ```bash
 git clone https://github.com/borgr/Xthread2social ~/PycharmProjects/Xthread2social
@@ -42,8 +55,10 @@ MASTODON_ACCESS_TOKEN=keychain
 X_HANDLES=yourxname                          # optional; your own threads then go uncredited
 ```
 
-Secrets set to the literal `keychain` (or left blank) are read from the macOS Keychain, so
-they never exist as plaintext on disk. Store one without it passing through an editor or a
+Secrets set to the literal `keychain` (or left blank) are read from the OS secret store, so
+they never exist as plaintext on disk — the macOS Keychain, or libsecret on Linux (`secret-tool`,
+from `libsecret-tools`, talking to GNOME Keyring or KWallet). With neither installed the env
+file's own value is used, so `chmod 600` it. Store one without it passing through an editor or a
 terminal transcript:
 
 The Bluesky secret is an **app password** (Settings → Privacy and security → App passwords),
@@ -102,7 +117,7 @@ must not be able to post as `colab-links`.
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--doctor` | check every layer and print which one is broken (see below) |
-| `--install-listener` | install the launchd agent for the browser shortcut, print its token |
+| `--install-listener` | install the socket-activated agent for the browser shortcut, print its token |
 | `--uninstall-listener` | remove that agent |
 
 ## Browser shortcut (no terminal)
@@ -110,8 +125,15 @@ must not be able to post as `colab-links`.
 One-time setup:
 
 ```bash
-xthread2social --install-listener       # prints a token; installs a launchd agent
+xthread2social --install-listener       # prints a token; installs the agent for your OS
 ```
+
+On macOS that writes `~/Library/LaunchAgents/io.github.borgr.xthread2social.plist`; on Linux
+`~/.config/systemd/user/xthread2social.socket` plus a template
+`xthread2social@.service`, then `systemctl --user enable --now`. Either way the init system
+holds `127.0.0.1:8765` and starts the handler *per connection*, with the connected socket as
+its stdin/stdout — so nothing runs between publishes and there is nothing to restart after a
+reboot. On a headless Linux box `systemctl --user` needs `loginctl enable-linger $USER` first.
 
 Then install the userscript **from the URL** (not from your disk, so a new machine gets it
 with one click and pushed edits reach every browser):
@@ -150,7 +172,7 @@ page, whether the token is stored, and whether the listener answers — the firs
 if a press does nothing.
 
 How it works: the script collects tweet ids only and calls a listener on `127.0.0.1:8765`,
-which `launchd` starts **on connection** and reaps afterwards — no daemon, nothing to restart
+which launchd (or systemd) starts **on connection** and reaps afterwards — no daemon, nothing to restart
 after a reboot. Requests must carry the token, so no other page can make you publish, and the
 socket is bound to loopback only. `--uninstall-listener` removes the agent;
 `--install-listener --rotate-token` issues a new token (and invalidates the old one).
@@ -167,8 +189,8 @@ Everything is in this one repo: the Python runner and the userscript are two hal
 same install, not two projects. Nothing here is account- or machine-specific — no credential,
 no handle, no path — so a friend needs no fork and no edit:
 
-1. macOS with Python 3.10+. The browser shortcut is macOS-only: it is a launchd agent plus the
-   Keychain. The CLI itself is portable, but `--install-listener` is not.
+1. macOS or Linux with Python 3.10+ (see [Platforms](#platforms) — Windows gets the CLI only,
+   and the Linux listener is so far untested on real hardware).
 2. The three blocks above, in order: **Install** (clone, venv, `pip install -e . regex`,
    symlink onto PATH), **Configure** (their own Bluesky app password and Mastodon access token
    with `read:accounts`, `write:statuses`, `write:media`), **Browser shortcut**
@@ -179,7 +201,7 @@ no handle, no path — so a friend needs no fork and no edit:
 
 The userscript is deliberately installed from the raw URL rather than from their clone, so
 pushed fixes reach their browser on the next update check. Their token is theirs: it is
-generated locally, lives in their Keychain, and is a capability for *their* listener only.
+generated locally, lives in their own secret store, and is a capability for *their* listener only.
 
 ## When it breaks
 
@@ -189,8 +211,9 @@ Start here, always:
 xthread2social --doctor
 ```
 
-Five independent things can stop a publish — the env file, the Keychain secrets, the launchd
-agent, X's syndication endpoint, and a stale copy of the userscript in the browser — and from
+Five independent things can stop a publish — the env file, the stored secrets, the
+socket-activated agent, X's syndication endpoint, and a stale copy of the userscript in the
+browser — and from
 inside Chrome they all surface as the same "listener not reachable". `--doctor` walks them in
 order, prints a line per layer, tails the listener log, and logs in to both accounts without
 posting. Fix the topmost `FAIL`; anything below it is usually a consequence.
@@ -219,5 +242,5 @@ fallback path, and the reason `thread.json` is the only interface between readin
 change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 
 ```bash
-python3 -m unittest discover -s tests      # 60 tests, offline except one Keychain round-trip
+python3 -m unittest discover -s tests      # 88 tests, offline except one secret-store round-trip
 ```

@@ -1,6 +1,7 @@
 """Credentials from ~/.config/xthread2social/env (not ./.env - the browser shortcut and
 the launchd handler run from an arbitrary working directory)."""
 import os
+import sys
 from pathlib import Path
 
 PATH = Path(os.environ.get("XTHREAD2SOCIAL_ENV",
@@ -30,16 +31,36 @@ SECRETS = ("ATPROTO_APP_PASSWORD", "MASTODON_ACCESS_TOKEN")
 KEYCHAIN_SERVICE = "xthread2social"
 
 
+def secret_store_name():
+    """Which OS secret store this machine has, or "" for none.
+
+    macOS ships `security`; on Linux the equivalent is libsecret's `secret-tool`, which talks
+    to whichever keyring the desktop session runs (GNOME Keyring, KWallet). With neither, the
+    env file's plaintext value is the only source - the tool still works, less privately.
+    """
+    import shutil
+    if sys.platform == "darwin":
+        return "security"
+    if shutil.which("secret-tool"):
+        return "secret-tool"
+    return ""
+
+
 def keychain(name, service=KEYCHAIN_SERVICE):
-    """Read a secret from the macOS Keychain, or "" if absent/unavailable.
+    """Read a secret from the OS secret store, or "" if absent/unavailable.
 
     Preferred over the env file: the value never exists as plaintext on disk, and
     storing it needs no editor (so it never passes through a terminal transcript).
     """
     import subprocess
+    tool = secret_store_name()
+    if not tool:
+        return ""
+    cmd = (["security", "find-generic-password", "-s", service, "-a", name, "-w"]
+           if tool == "security"
+           else ["secret-tool", "lookup", "service", service, "account", name])
     try:
-        r = subprocess.run(["security", "find-generic-password", "-s", service,
-                            "-a", name, "-w"], capture_output=True, text=True, timeout=10)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return ""
     return r.stdout.strip() if r.returncode == 0 else ""
@@ -60,14 +81,26 @@ def resolve_secrets(names=SECRETS):
 
 
 def store(name, value, service=KEYCHAIN_SERVICE):
-    """Write a secret into the Keychain, replacing any existing entry."""
+    """Write a secret into the OS secret store, replacing any existing entry."""
     import subprocess
     if not value:
         raise ValueError("refusing to store an empty secret")
-    r = subprocess.run(["security", "add-generic-password", "-U", "-s", service,
-                        "-a", name, "-w", value], capture_output=True, text=True)
+    tool = secret_store_name()
+    if not tool:
+        raise RuntimeError(
+            "no OS secret store found: install libsecret's secret-tool "
+            "(apt install libsecret-tools / dnf install libsecret) so secrets stay out of "
+            f"plaintext, or put {name}=<value> in {PATH} and protect it with chmod 600")
+    if tool == "security":
+        r = subprocess.run(["security", "add-generic-password", "-U", "-s", service,
+                            "-a", name, "-w", value], capture_output=True, text=True)
+    else:
+        # The value goes on stdin, never in argv - a command line is world-readable in /proc.
+        r = subprocess.run(["secret-tool", "store", "--label", f"{service} {name}",
+                            "service", service, "account", name],
+                           input=value, capture_output=True, text=True)
     if r.returncode != 0:
-        raise RuntimeError(f"keychain write failed: {r.stderr.strip()}")
+        raise RuntimeError(f"secret store write failed ({tool}): {r.stderr.strip()}")
     os.environ[name] = value
 
 

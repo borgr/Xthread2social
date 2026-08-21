@@ -1,7 +1,7 @@
 """`xthread2social --doctor`: one command that says which layer is broken.
 
-There are five things that can independently stop a publish - credentials, the Keychain
-token, the launchd agent, X's unofficial syndication endpoint, and a stale copy of the
+There are five things that can independently stop a publish - credentials, the secret-store
+token, the socket-activated agent, X's unofficial syndication endpoint, and a stale copy of the
 userscript in the browser - and from inside Chrome they all look identical ("listener not
 reachable"). This walks them in order and prints a line per layer, so the answer never
 depends on remembering which of them to suspect first.
@@ -44,16 +44,21 @@ def check_install():
 def check_listener():
     """Agent installed, loaded, pointing at a binary that exists, and answering."""
     from . import listener
-    ok = _line("ok" if listener.PLIST.exists() else "FAIL", "launchd plist",
-               str(listener.PLIST))
+    try:
+        mgr = listener.manager()
+    except listener.Unsupported as e:
+        return _line("FAIL", "listener", str(e))
+    ok = True
+    for f in listener.unit_files():
+        ok &= _line("ok" if f.exists() else "FAIL", f"{mgr} unit", str(f))
     try:
         _line("ok", "serve binary", listener.serve_binary())
     except RuntimeError as e:
         ok &= _line("FAIL", "serve binary", str(e))
     loaded, _ = listener.status()
     ok &= _line("ok" if loaded else "FAIL", "agent loaded",
-                f"launchctl list {listener.LABEL}" if loaded
-                else f"{listener.LABEL} not in launchctl list - run --install-listener")
+                listener.status_command() if loaded
+                else f"not active ({listener.status_command()}) - run --install-listener")
     token = config.get("LISTENER_TOKEN") or config.keychain("LISTENER_TOKEN")
     if not token:
         return _line("FAIL", "listener /ping", "no token to call it with") and ok

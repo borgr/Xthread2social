@@ -215,7 +215,8 @@ def main(argv=None):
         from . import listener
         if args.uninstall_listener:
             listener.uninstall()
-            print("[removed] launchd agent; the browser shortcut falls back to the clipboard")
+            print(f"[removed] {listener.manager()} agent; the browser shortcut falls back "
+                  f"to the clipboard")
             return 0
         try:
             token = listener.install(rotate=args.rotate_token)
@@ -223,9 +224,10 @@ def main(argv=None):
             print(f"[error] {e}", file=sys.stderr)
             return 2
         loaded, _ = listener.status()
+        units = ", ".join(str(f) for f in listener.unit_files())
         print(f"[ok] listening on 127.0.0.1:{listener.PORT} "
-              f"({'loaded' if loaded else 'NOT loaded - check launchctl'})\n"
-              f"     agent: {listener.PLIST}\n\n"
+              f"({'loaded' if loaded else 'NOT loaded - ' + listener.status_command()})\n"
+              f"     {listener.manager()}: {units}\n\n"
               f"Paste this token into the userscript once (Tampermonkey menu ->\n"
               f'"Set publish token" on an x.com tab):\n\n    {token}\n')
         return 0
