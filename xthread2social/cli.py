@@ -97,7 +97,8 @@ def preview(thread, args):
     for w in thread.warnings:
         print(f"  [warn] {w}")
     for kind in args.to:
-        units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args))
+        units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args),
+                       note=getattr(args, "note", "") or "")
         print(f"\n--- {kind}: {len(units)} post(s) ---")
         for i, u in enumerate(units, 1):
             imgs = f"  [{len(u['images'])} image(s)]" if u["images"] else ""
@@ -114,7 +115,7 @@ def _publish_locked(thread, args, targets):
     failures = []
     for tgt in targets:
         units = render(thread, tgt.name, attribution_for(thread, args),
-                       credit_for(thread, args))
+                       credit_for(thread, args), note=getattr(args, "note", "") or "")
         start, refs = ledger.done(thread.root_id, tgt.name)
         if start >= len(units):
             print(f"[{tgt.name}] already complete ({start} posts) - nothing to do")
@@ -164,6 +165,8 @@ def main(argv=None):
                     help="post even though the last tweet may have a continuation")
     ap.add_argument("--all-public", action="store_true",
                     help="Mastodon: post replies public too (default: unlisted)")
+    ap.add_argument("--note", default="", metavar="TEXT",
+                    help="your own words, prepended to the first post above the author's text")
     ap.add_argument("--no-attribution", action="store_true")
     ap.add_argument("--install-listener", action="store_true",
                     help="install the launchd agent that lets the browser shortcut publish "

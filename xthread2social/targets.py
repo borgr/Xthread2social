@@ -15,7 +15,7 @@ class PostError(Exception):
     """A target failed. Anything already published stays in the ledger."""
 
 
-def render(thread, limit_kind="bluesky", attribution="", credit=""):
+def render(thread, limit_kind="bluesky", attribution="", credit="", note=""):
     """Thread -> list of {text, tweet} units, one per post, in order.
 
     A tweet longer than the target's cap becomes several consecutive posts; images ride
@@ -24,6 +24,10 @@ def render(thread, limit_kind="bluesky", attribution="", credit=""):
     `credit` goes at the bottom of the very first post, so a reader sees whose thread this
     is without scrolling to the end; `attribution` (which carries the source link) closes
     the thread. Both are empty for your own threads.
+
+    `note` is your own words, prepended to the first post above the author's text - a line of
+    context for your followers. It is split like any other text, so a long note pushes the
+    original down into a further post rather than being truncated.
 
     `credit` may be several wordings, longest first: the first tweet is re-split against a
     limit lowered by the credit's length, and the longest wording that does not force the
@@ -35,6 +39,8 @@ def render(thread, limit_kind="bluesky", attribution="", credit=""):
     units = []
     for i, t in enumerate(thread.tweets):
         text = t.text
+        if i == 0 and note.strip():
+            text = f"{note.strip()}\n\n{text}"
         if t.quoted:
             text = f"{text}\n\n> {t.quoted}"
         last = i == len(thread.tweets) - 1

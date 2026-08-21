@@ -90,6 +90,7 @@ must not be able to post as `colab-links`.
 | `--post` | actually publish (everything is preview-only by default) |
 | `--to bluesky` / `--to mastodon` | one target instead of both |
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
+| `--note TEXT` | your own words above the author's text on the first post |
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--doctor` | check every layer and print which one is broken (see below) |
@@ -117,6 +118,14 @@ Now, on any X thread, scroll to its last tweet and either click the **🔁 publi
 the bottom-right corner or press the hotkey (**Option+Shift+X** by default). An overlay shows
 the thread as it will be posted, per target, with warnings; **Publish** posts it and shows the
 links. Nothing leaves the browser and no terminal is involved.
+
+The box at the top of that overlay adds **your own words** above the author's text on the
+first post. The preview re-splits as you type, so the character counts and post boundaries
+you see are the real ones — a long note pushes the original down into a further post rather
+than being truncated. The read is cached for 30 minutes, which is what makes that instant
+(and means a thread previewed a minute ago still publishes if X's endpoint goes down in
+between). The posts themselves are not editable: rendering is derived from the thread, so an
+edit would have to survive re-splitting, and this box covers what a note actually needs.
 
 **When a hotkey does nothing, it is taken.** Chrome (`Cmd+Shift+T` = reopen closed tab) and
 other extensions (1Password grabs `Ctrl+Shift+X`) consume the keystroke before any page script

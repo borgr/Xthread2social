@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.5.1
+// @version      0.6.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -26,7 +26,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '0.5.1';                // shown in every overlay: the fastest way to
+  const VERSION = '0.6.0';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -105,7 +105,11 @@
     #x2s .go{background:#1d9bf0;color:#fff}
     #x2s .cancel{background:#2f3336;color:#e7e9ea}
     #x2s a{color:#1d9bf0}
-    #x2s label{color:#e7e9ea;display:flex;gap:5px;align-items:center}`;
+    #x2s label{color:#e7e9ea;display:flex;gap:5px;align-items:center}
+    #x2s textarea{width:100%;box-sizing:border-box;background:#0f1114;color:#e7e9ea;
+      border:1px solid #2f3336;border-radius:9px;padding:8px 10px;font:14px/1.45 inherit;
+      resize:vertical;min-height:52px}
+    #x2s .hint{color:#8b98a5;font-size:12px;margin:3px 0 8px}`;
 
   function close() {
     const w = document.getElementById('x2s-wrap');
@@ -127,38 +131,63 @@
 
   const esc = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
 
-  function showPreview(urls, data) {
+  // The note box lives above the posts and re-previews as you type: the listener re-splits
+  // with the note included (the read itself is cached, so this costs no request to X), which
+  // is the only way the character counts and post boundaries on screen stay true.
+  function renderPosts(el, data) {
     const kinds = Object.keys(data.targets);
-    const shown = kinds[0];
+    const shown = el.dataset.shown || kinds[0];
     const n = data.tweets;
-    // Say "N tweets -> M posts" explicitly: a tweet past the target's character cap becomes
-    // several posts, and without this line a 1-tweet thread showing "2 posts" reads as the
-    // reader having swept up a stray tweet.
+    el.innerHTML = data.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('') +
+      data.targets[shown].map((p, i) => {
+        const bits = [`${i + 1}.`];
+        if (p.parts > 1) bits.push(`part ${p.part}/${p.parts} of tweet ${p.tweet}`);
+        bits.push(`${p.text.length} chars`);
+        if (p.images.length) bits.push(`${p.images.length} image(s)`);
+        if (kinds.length > 1 && i === 0) bits.push(`showing ${shown}`);
+        return `<div class="post"><div class="meta">${esc(bits.join(' · '))}</div>` +
+               `${esc(p.text)}</div>`;
+      }).join('');
     const sub = kinds.map(k => {
       const m = data.targets[k].length;
       return `${k}: ${m} post${m === 1 ? '' : 's'}` + (m > n ? ' (split to fit)' : '');
     }).join('   ·   ');
-    const body = shell(`@${data.author} - ${n} tweet${n === 1 ? '' : 's'}`,
-                       `${sub}   ·   v${VERSION}`);
-    let html = data.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('');
-    html += data.targets[shown].map((p, i) => {
-      const bits = [`${i + 1}.`];
-      if (p.parts > 1) bits.push(`part ${p.part}/${p.parts} of tweet ${p.tweet}`);
-      bits.push(`${p.text.length} chars`);
-      if (p.images.length) bits.push(`${p.images.length} image(s)`);
-      if (kinds.length > 1 && i === 0) bits.push(`showing ${shown}`);
-      return `<div class="post"><div class="meta">${esc(bits.join(' · '))}</div>` +
-             `${esc(p.text)}</div>`;
-    }).join('');
-    html += '<div class="row">' +
+    const head = document.querySelector('#x2s .sub');
+    if (head) head.textContent = `${sub}   ·   v${VERSION}`;
+  }
+
+  function showPreview(urls, data) {
+    const kinds = Object.keys(data.targets);
+    const n = data.tweets;
+    const body = shell(`@${data.author} - ${n} tweet${n === 1 ? '' : 's'}`, '');
+    body.innerHTML = `<textarea id="x2s-note" placeholder="Your own words, added above the ` +
+      `author's text in the first post (optional)"></textarea>
+      <div class="hint">counts and splits below update as you type</div>
+      <div id="x2s-posts"></div>` +
+      '<div class="row">' +
       kinds.map(k => `<label><input type="checkbox" class="t" value="${k}" checked>${k}</label>`).join('') +
       '<span style="flex:1"></span><button class="cancel">Cancel</button>' +
       '<button class="go">Publish</button></div>';
-    body.innerHTML = html;
+    const posts = body.querySelector('#x2s-posts');
+    posts.dataset.shown = kinds[0];
+    renderPosts(posts, data);
+
+    const note = body.querySelector('#x2s-note');
+    let timer = null, latest = data;
+    note.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          latest = await call('/preview', {urls, allow_incomplete: true, note: note.value});
+          renderPosts(posts, latest);             // the textarea itself is never re-rendered,
+        } catch (e) { showError(e); }             // so typing is not interrupted
+      }, 450);
+    });
+
     body.querySelector('.cancel').onclick = close;
     body.querySelector('.go').onclick = () => {
       const to = [...body.querySelectorAll('.t:checked')].map(c => c.value);
-      if (to.length) doPublish(urls, to);
+      if (to.length) doPublish(urls, to, note.value);
     };
   }
 
@@ -178,10 +207,10 @@
     body.querySelector('.cancel').onclick = close;
   }
 
-  async function doPublish(urls, to) {
+  async function doPublish(urls, to, note) {
     shell('Xthread2social', 'publishing - uploading images, then posting…');
     try {
-      showResult(await call('/publish', {urls, to, allow_incomplete: true}));
+      showResult(await call('/publish', {urls, to, allow_incomplete: true, note: note || ''}));
     } catch (e) { showError(e); }
   }
 

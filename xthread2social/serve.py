@@ -50,10 +50,11 @@ def log(msg):
 
 class Args:
     """The subset of the CLI's argparse namespace that render/publish read."""
-    def __init__(self, to, all_public=False, no_attribution=False):
+    def __init__(self, to, all_public=False, no_attribution=False, note=""):
         self.to = to
         self.all_public = all_public
         self.no_attribution = no_attribution
+        self.note = note
 
 
 def _targets_wanted(payload):
@@ -62,10 +63,19 @@ def _targets_wanted(payload):
 
 
 def _thread(payload):
+    """The read, cached for TTL. Editing the note re-previews; publishing re-reads what was
+    previewed - neither should re-walk the chain against X."""
+    from . import cache
+    from .read_syndication import parse_ids
     urls = payload.get("urls") or []
     if not urls:
         raise ReadError("no tweet urls given")
-    return read_thread(urls, allow_incomplete=bool(payload.get("allow_incomplete")))
+    allow = bool(payload.get("allow_incomplete"))
+    ids = parse_ids(urls)
+    hit = cache.get(ids, allow)
+    if hit:
+        return hit
+    return cache.put(ids, allow, read_thread(urls, allow_incomplete=allow))
 
 
 def _web_url(target, ref, handle):
@@ -78,13 +88,15 @@ def _web_url(target, ref, handle):
 
 def route_preview(payload):
     thread = _thread(payload)
-    args = Args(_targets_wanted(payload), no_attribution=bool(payload.get("no_attribution")))
+    args = Args(_targets_wanted(payload), no_attribution=bool(payload.get("no_attribution")),
+                note=payload.get("note", ""))
     out = {"author": thread.author, "tweets": len(thread.tweets),
            "source_url": thread.source_url, "warnings": list(thread.warnings),
            "urls": [t.url for t in thread.tweets], "targets": {}}
     index = {t.id: i + 1 for i, t in enumerate(thread.tweets)}
     for kind in args.to:
-        units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args))
+        units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args),
+                       note=args.note)
         # A tweet longer than the target's cap becomes several posts; say so, so "1 tweet ->
         # 2 posts" reads as splitting rather than as the reader having grabbed a stray tweet.
         parts = {}
@@ -105,7 +117,8 @@ def route_publish(payload):
     """Publish, keeping the handler's stdout clean - it is the socket, not a terminal."""
     thread = _thread(payload)
     args = Args(_targets_wanted(payload), all_public=bool(payload.get("all_public")),
-                no_attribution=bool(payload.get("no_attribution")))
+                no_attribution=bool(payload.get("no_attribution")),
+                note=payload.get("note", ""))
     targets = build_targets(args)
     if not targets:
         return {"error": f"no target configured - see {config.PATH}"}
