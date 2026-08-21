@@ -41,7 +41,7 @@ class TestPreview(unittest.TestCase):
         out = buf.getvalue()
         self.assertIn("bluesky: 9 post(s)", out)
         self.assertIn("mastodon: 8 post(s)", out)
-        self.assertIn("crossposted from @nthngdy", out)
+        self.assertIn("x-post from @nthngdy", out)
         self.assertIn("[warn]", out)
 
     def test_no_urls_and_no_json_is_a_usage_error(self):

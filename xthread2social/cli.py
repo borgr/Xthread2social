@@ -63,19 +63,20 @@ def attribution_for(thread, args):
         return ""
     if _is_mine(thread):
         return f"\n\n{thread.source_url}"
-    return f"\n\n— via @{thread.author} {thread.source_url}"
+    return f"\n\n— x-post from @{thread.author} {thread.source_url}"
 
 
 def credit_for(thread, args):
     """Opening credit for the first post: wordings longest-first, never for your own thread.
 
-    render() picks the longest one that still fits without splitting the opening tweet.
+    render() picks the longest one that still fits without splitting the opening tweet, and
+    falls back to the shortest - the credit is always on the first post either way.
     """
     if args.no_attribution or _is_mine(thread):
         return ""
     h = thread.author
-    return [f"\n\n\U0001F501 crossposted from @{h}",
-            f"\n\n\U0001F501 via @{h}",
+    return [f"\n\n\U0001F501 x-post from @{h}",
+            f"\n\n\U0001F501 x-post @{h}",
             f"\n\n\U0001F501 @{h}"]
 
 

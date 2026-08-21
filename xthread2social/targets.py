@@ -27,9 +27,9 @@ def render(thread, limit_kind="bluesky", attribution="", credit=""):
 
     `credit` may be several wordings, longest first: the first tweet is re-split against a
     limit lowered by the credit's length, and the longest wording that does not force the
-    opening tweet to split into an extra post wins. If even the shortest would add a post,
-    the opening credit is dropped - the closing `attribution` still names the author, and
-    reshaping someone's opening tweet to make room for a credit line is the worse trade.
+    opening tweet to split into an extra post wins. If none of them fits, the shortest is
+    used anyway and the opening tweet splits - the credit always appears on the first post,
+    because a reader who meets the thread there is the one who needs to know whose it is.
     """
     forms = [credit] if isinstance(credit, str) else list(credit)
     units = []
@@ -48,11 +48,16 @@ def render(thread, limit_kind="bluesky", attribution="", credit=""):
 
         chunks, head = split(), ""
         if i == 0 and forms and forms[0]:
+            free = len(chunks)                    # posts the opener needs with no credit
             for form in forms:
-                shorter = split(len(form))
-                if len(shorter) == len(chunks):
-                    chunks, head = shorter, form
-                    break
+                chunks, head = split(len(form)), form
+                if len(chunks) == free:           # longest wording that costs no extra post
+                    break                         # ...otherwise the shortest one stands
+        # One post carrying both lines reads as a stutter ("x-post from @a" twice), and the
+        # closing line already names the author and carries the link - so the opener's credit
+        # yields when they would collide.
+        if head and last and attribution and len(chunks) == 1:
+            chunks, head = split(), ""
         if head:
             chunks[0] = (chunks[0] + head).rstrip()
         if last and attribution:

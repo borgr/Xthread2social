@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
 
 class TestCredit(unittest.TestCase):
-    """The opening credit must not reshape the thread to make room for itself."""
+    """The opening credit is always on the first post; wording shrinks before the split does."""
 
     def thread(self, first_text):
         from xthread2social.model import Thread, Tweet
@@ -76,13 +76,13 @@ class TestCredit(unittest.TestCase):
                                   Tweet(id="2", text="second", author="someone")],
                       source_url="https://x.com/someone/status/1")
 
-    FORMS = ["\n\n\U0001F501 crossposted from @someone",
-             "\n\n\U0001F501 via @someone",
+    FORMS = ["\n\n\U0001F501 x-post from @someone",
+             "\n\n\U0001F501 x-post @someone",
              "\n\n\U0001F501 @someone"]
 
     def test_credit_lands_on_the_first_post_only(self):
         units = render(self.thread("short opener"), "bluesky", credit=self.FORMS)
-        self.assertIn("crossposted from @someone", units[0]["text"])
+        self.assertIn("x-post from @someone", units[0]["text"])
         self.assertNotIn("@someone", units[1]["text"])
 
     def test_a_full_opener_gets_a_shorter_credit_rather_than_an_extra_post(self):
@@ -90,16 +90,31 @@ class TestCredit(unittest.TestCase):
         plain = render(self.thread(opener), "bluesky")
         credited = render(self.thread(opener), "bluesky", credit=self.FORMS)
         self.assertEqual(len(plain), len(credited))    # no post added
-        self.assertIn("\U0001F501 via @someone", credited[0]["text"])
-        self.assertNotIn("crossposted", credited[0]["text"])
+        # Which of the shorter wordings wins depends on their lengths; what matters is that
+        # a shorter one was chosen over the longest, and that no post was added.
+        self.assertIn("\U0001F501", credited[0]["text"])
+        self.assertNotIn("x-post from", credited[0]["text"])
         self.assertLessEqual(glen(credited[0]["text"]), 300)
 
-    def test_credit_is_dropped_when_even_the_shortest_would_split_the_opener(self):
+    def test_credit_survives_even_when_it_costs_an_extra_post(self):
         opener = "w " * 144                            # 287 chars: nothing fits alongside
         plain = render(self.thread(opener), "bluesky")
         credited = render(self.thread(opener), "bluesky", credit=self.FORMS)
-        self.assertEqual(len(plain), len(credited))
-        self.assertNotIn("\U0001F501", credited[0]["text"])
+        self.assertIn("\U0001F501 @someone", credited[0]["text"])
+        self.assertGreater(len(credited), len(plain))       # the split is the accepted cost
+        self.assertLessEqual(glen(credited[0]["text"]), 300)
+
+    def test_a_single_post_is_not_credited_twice(self):
+        """Credit and attribution on the same post would repeat the same words."""
+        from xthread2social.model import Thread, Tweet
+        one = Thread("someone", [Tweet(id="1", text="a single tweet", author="someone")],
+                     source_url="https://x.com/someone/status/1")
+        units = render(one, "bluesky",
+                       attribution="\n\n— x-post from @someone https://x.com/s/1",
+                       credit=self.FORMS)
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0]["text"].count("x-post"), 1)
+        self.assertIn("https://x.com/s/1", units[0]["text"])
 
     def test_own_thread_gets_no_credit(self):
         units = render(self.thread("short opener"), "bluesky", credit="")

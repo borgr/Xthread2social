@@ -77,11 +77,11 @@ must not be able to post as `colab-links`.
 - Holds a per-thread lock while publishing, so two tabs (or a retry after the browser gave up
   on a slow upload) cannot both start from "nothing posted yet" and publish it twice.
 - Mastodon root is public, replies unlisted (`--all-public` to override).
-- Credits someone else's thread twice: `🔁 crossposted from @author` at the bottom of the
-  first post, and `— via @author <source>` on the last. The opening line shrinks to
-  `🔁 via @author` or `🔁 @author`, or is dropped entirely, rather than pushing the author's
-  opening tweet into two posts. Neither appears on your own threads; `--no-attribution`
-  drops both.
+- Credits someone else's thread twice: `🔁 x-post from @author` at the bottom of the **first**
+  post, and `— x-post from @author <source>` on the last. The opening line always appears —
+  it shrinks to `🔁 x-post @author` or `🔁 @author` to avoid costing an extra post, and takes
+  the extra post if even the shortest wording will not fit. Neither appears on your own
+  threads; `--no-attribution` drops both.
 
 ## Useful flags
 
