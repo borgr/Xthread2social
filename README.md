@@ -13,18 +13,28 @@ tweet's URL too (either order) upgrades the completeness check from a warning to
 
 ## Platforms
 
-macOS and Linux. The publishing engine is pure Python; the two platform-specific pieces are
-the secret store (Keychain / libsecret) and the socket-activated listener behind the browser
-shortcut (launchd / `systemd --user`). Both are installed by the same `--install-listener`,
-which picks the backend for you. Windows runs the CLI (`--post` included — the publish lock falls
-back to `msvcrt` where there is no `flock`), but has no secret store wired and no listener: it
-has no socket activation, so the browser shortcut would need a resident local server started
-at logon. That is buildable, just a different shape — see [PLAN.md](PLAN.md).
+macOS, Linux and Windows. The publishing engine is pure Python; three things differ per
+platform, and `--install-listener` picks all three for you:
 
-**The Linux path is written but has not been run on a Linux box** (its unit text is covered by
-tests; the live end-to-end is macOS-only so far). If you are the first to try it,
-`xthread2social --doctor` names the layer that broke, and `journalctl --user -u 'xthread2social@*'`
-has the handler's own errors.
+| | macOS | Linux | Windows |
+|---|---|---|---|
+| Secrets | Keychain (`security`) | libsecret (`secret-tool`) | DPAPI via `ctypes` |
+| Listener | launchd, socket-activated | `systemd --user` socket, `Accept=yes` | resident server + Task Scheduler |
+| Between publishes | no process | no process | one idle server |
+
+macOS and Linux get socket activation: the init system holds `127.0.0.1:8765` and starts a
+handler *per connection*, so nothing runs, leaks, or needs restarting between publishes.
+Windows has no equivalent, so it runs a resident loopback server started at logon — the one
+arrangement that can be registered and yet dead when you press the hotkey, which is why
+`--doctor` there checks that the port answers, not just that the task exists. Both
+arrangements call the same `serve_one()`, so the request path cannot drift between them.
+
+**Only the macOS path has been run end to end.** Linux and Windows are covered by tests that
+assert the unit text, the launcher script and the resident server (which does get exercised for
+real, on a socket, since it is platform-independent code) — but neither has been installed on
+its own OS. If you are first: `xthread2social --doctor` names the layer that broke,
+`journalctl --user -u 'xthread2social@*'` has the Linux handler's errors, and on Windows
+`xthread2social-serve --foreground` runs the server in a console where you can watch it.
 
 ## Install (works the same on a new machine)
 

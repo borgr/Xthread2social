@@ -56,6 +56,8 @@ def check_listener():
     except RuntimeError as e:
         ok &= _line("FAIL", "serve binary", str(e))
     loaded, _ = listener.status()
+    # On Windows "loaded" already includes "and answering": a resident server can be
+    # registered at logon and dead right now, which socket activation cannot be.
     ok &= _line("ok" if loaded else "FAIL", "agent loaded",
                 listener.status_command() if loaded
                 else f"not active ({listener.status_command()}) - run --install-listener")

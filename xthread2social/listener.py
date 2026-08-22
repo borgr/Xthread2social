@@ -17,6 +17,7 @@ from . import config
 
 IS_MAC = sys.platform == "darwin"
 IS_LINUX = sys.platform.startswith("linux")
+IS_WIN = sys.platform == "win32"      # "win32" on 64-bit Windows too
 
 # Names the software, not the machine's owner: the agent is installed verbatim on anyone
 # else's machine too, and the old "com.lc." label is booted out and deleted on the next
@@ -28,6 +29,10 @@ PLIST = Path.home() / "Library/LaunchAgents" / f"{LABEL}.plist"
 UNIT_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "systemd/user"
 SOCKET_UNIT = UNIT_DIR / "xthread2social.socket"
 SERVICE_UNIT = UNIT_DIR / "xthread2social@.service"   # @: one instance per connection
+
+TASK_NAME = "Xthread2social listener"
+WIN_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "xthread2social"
+LAUNCHER = WIN_DIR / "start-listener.cmd"
 
 PORT = int(os.environ.get("XTHREAD2SOCIAL_PORT", "8765"))
 TOKEN_NAME = "LISTENER_TOKEN"
@@ -44,14 +49,21 @@ def manager():
         return "launchd"
     if IS_LINUX:
         return "systemd --user"
+    if IS_WIN:
+        return "schtasks"
     raise Unsupported(
-        f"the browser shortcut needs launchd (macOS) or systemd (Linux); {sys.platform} has "
-        f"neither. The CLI itself works: `xthread2social <url> --post`.")
+        f"the browser shortcut needs launchd (macOS), systemd (Linux) or Task Scheduler "
+        f"(Windows); {sys.platform} has none. The CLI itself works: "
+        f"`xthread2social <url> --post`.")
 
 
 def unit_files():
     """The files install() writes - what to look at when the shortcut is dead."""
-    return [PLIST] if IS_MAC else [SOCKET_UNIT, SERVICE_UNIT]
+    if IS_MAC:
+        return [PLIST]
+    if IS_WIN:
+        return [LAUNCHER]
+    return [SOCKET_UNIT, SERVICE_UNIT]
 
 
 def serve_binary():
@@ -182,6 +194,64 @@ def _uninstall_systemd():
     _systemctl("daemon-reload")
 
 
+# ---------- Task Scheduler (Windows) ----------
+#
+# The one platform with no socket activation, so the shape differs: a resident server started
+# at logon rather than a handler started per connection. Everything above stays untouched -
+# this branch adds a process, it does not change the protocol, and serve.serve_one() is the
+# same function both arrangements call.
+
+def launcher_body():
+    """A .cmd that starts the resident server with no console window.
+
+    pythonw.exe rather than python.exe: a console script would leave a black window open for
+    as long as the listener lives. `start ""` returns immediately so Task Scheduler does not
+    hold the task "running" forever and refuse to start it again.
+    """
+    pyw = Path(sys.executable).with_name("pythonw.exe")
+    exe = pyw if pyw.exists() else Path(sys.executable)
+    return (f'@echo off\r\n'
+            f'rem Written by `xthread2social --install-listener`; edit nothing here.\r\n'
+            f'start "" "{exe}" -m xthread2social.serve --foreground\r\n')
+
+
+def _schtasks(*args):
+    return subprocess.run(["schtasks", *args], capture_output=True, text=True)
+
+
+def _port_open():
+    """Is something actually accepting on the port?
+
+    Windows needs this and the other two do not: with socket activation the init system owns
+    the socket, so "installed" implies "answers". A resident server can be registered at logon
+    and still be dead right now, which is the failure mode this arrangement adds.
+    """
+    import socket as _s
+    try:
+        with _s.create_connection(("127.0.0.1", PORT), timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+def _install_windows():
+    WIN_DIR.mkdir(parents=True, exist_ok=True)
+    LAUNCHER.write_text(launcher_body())
+    r = _schtasks("/create", "/tn", TASK_NAME, "/sc", "onlogon",
+                  "/tr", f'"{LAUNCHER}"', "/f")
+    if r.returncode != 0:
+        raise RuntimeError(f"schtasks refused the task: {r.stderr.strip() or r.stdout.strip()}")
+    if not _port_open():
+        _schtasks("/run", "/tn", TASK_NAME)       # start it now, not at the next logon
+
+
+def _uninstall_windows():
+    _schtasks("/end", "/tn", TASK_NAME)
+    _schtasks("/delete", "/tn", TASK_NAME, "/f")
+    if LAUNCHER.exists():
+        LAUNCHER.unlink()
+
+
 # ---------- public API ----------
 
 def install(rotate=False):
@@ -193,12 +263,16 @@ def install(rotate=False):
         config.store(TOKEN_NAME, token)
     ERR_LOG.parent.mkdir(parents=True, exist_ok=True)
     unit_files()[0].parent.mkdir(parents=True, exist_ok=True)
-    (_install_launchd if IS_MAC else _install_systemd)()
+    backends = {"launchd": _install_launchd, "systemd --user": _install_systemd,
+                "schtasks": _install_windows}
+    backends[manager()]()
     return token
 
 
 def uninstall():
-    (_uninstall_launchd if IS_MAC else _uninstall_systemd)()
+    backends = {"launchd": _uninstall_launchd, "systemd --user": _uninstall_systemd,
+                "schtasks": _uninstall_windows}
+    backends[manager()]()
 
 
 def status():
@@ -207,6 +281,9 @@ def status():
         loaded = _launchctl("list", LABEL).returncode == 0
     elif IS_LINUX:
         loaded = _systemctl("is-active", SOCKET_UNIT.name).stdout.strip() == "active"
+    elif IS_WIN:
+        # Registered *and* answering: see _port_open() for why the second half is needed.
+        loaded = _schtasks("/query", "/tn", TASK_NAME).returncode == 0 and _port_open()
     else:
         loaded = False
     return loaded, bool(config.keychain(TOKEN_NAME))
@@ -214,5 +291,8 @@ def status():
 
 def status_command():
     """The command a human should run to see the same thing status() saw."""
-    return (f"launchctl list {LABEL}" if IS_MAC
-            else f"systemctl --user status {SOCKET_UNIT.name}")
+    if IS_MAC:
+        return f"launchctl list {LABEL}"
+    if IS_WIN:
+        return f'schtasks /query /tn "{TASK_NAME}" /v'
+    return f"systemctl --user status {SOCKET_UNIT.name}"

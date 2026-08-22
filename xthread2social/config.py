@@ -35,15 +35,58 @@ def secret_store_name():
     """Which OS secret store this machine has, or "" for none.
 
     macOS ships `security`; on Linux the equivalent is libsecret's `secret-tool`, which talks
-    to whichever keyring the desktop session runs (GNOME Keyring, KWallet). With neither, the
-    env file's plaintext value is the only source - the tool still works, less privately.
+    to whichever keyring the desktop session runs (GNOME Keyring, KWallet); on Windows it is
+    DPAPI, called directly through ctypes so nothing new has to be installed. With none of
+    them, the env file's plaintext value is the only source - the tool still works, less
+    privately.
     """
     import shutil
     if sys.platform == "darwin":
         return "security"
+    if sys.platform == "win32":
+        return "dpapi"
     if shutil.which("secret-tool"):
         return "secret-tool"
     return ""
+
+
+# ---------- DPAPI (Windows) ----------
+#
+# CryptProtectData encrypts to the *logged-in user*, so the blob on disk is useless to another
+# account and to anyone carrying the file away. One file per secret under %LOCALAPPDATA%,
+# which keeps read/write as simple as the two subprocess backends.
+
+def _dpapi_dir():
+    base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
+    return base / "xthread2social/secrets"
+
+
+def _dpapi_path(name, service):
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in f"{service}.{name}")
+    return _dpapi_dir() / f"{safe}.bin"
+
+
+def _dpapi(blob, encrypt):
+    """Round-trip a bytestring through CryptProtectData/CryptUnprotectData."""
+    import ctypes
+    from ctypes import wintypes
+
+    class BLOB(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD),
+                    ("pbData", ctypes.POINTER(ctypes.c_char))]
+
+    crypt = ctypes.windll.crypt32
+    fn = crypt.CryptProtectData if encrypt else crypt.CryptUnprotectData
+    src = BLOB(len(blob), ctypes.cast(ctypes.create_string_buffer(blob),
+                                      ctypes.POINTER(ctypes.c_char)))
+    out = BLOB()
+    if not fn(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
+        raise RuntimeError(f"DPAPI {'encrypt' if encrypt else 'decrypt'} failed "
+                           f"(error {ctypes.GetLastError()})")
+    try:
+        return ctypes.string_at(out.pbData, out.cbData)
+    finally:
+        ctypes.windll.kernel32.LocalFree(out.pbData)
 
 
 def keychain(name, service=KEYCHAIN_SERVICE):
@@ -56,6 +99,12 @@ def keychain(name, service=KEYCHAIN_SERVICE):
     tool = secret_store_name()
     if not tool:
         return ""
+    if tool == "dpapi":
+        path = _dpapi_path(name, service)
+        try:
+            return _dpapi(path.read_bytes(), encrypt=False).decode().strip()
+        except (OSError, RuntimeError):
+            return ""
     cmd = (["security", "find-generic-password", "-s", service, "-a", name, "-w"]
            if tool == "security"
            else ["secret-tool", "lookup", "service", service, "account", name])
@@ -91,6 +140,12 @@ def store(name, value, service=KEYCHAIN_SERVICE):
             "no OS secret store found: install libsecret's secret-tool "
             "(apt install libsecret-tools / dnf install libsecret) so secrets stay out of "
             f"plaintext, or put {name}=<value> in {PATH} and protect it with chmod 600")
+    if tool == "dpapi":
+        path = _dpapi_path(name, service)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(_dpapi(value.encode(), encrypt=True))
+        os.environ[name] = value
+        return
     if tool == "security":
         r = subprocess.run(["security", "add-generic-password", "-U", "-s", service,
                             "-a", name, "-w", value], capture_output=True, text=True)

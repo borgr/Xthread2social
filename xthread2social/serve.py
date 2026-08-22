@@ -222,20 +222,64 @@ def read_request(fin):
     return method, path.split("?")[0], headers, body
 
 
-def main(argv=None):
-    config.load()
-    config.resolve_secrets(config.SECRETS + ("LISTENER_TOKEN",))
-    fin, fout = sys.stdin.buffer, sys.stdout.buffer
-    method, path, headers, body = read_request(fin)
-    if not method:
-        return 0
-    status, payload = handle(method, path, headers, body)
+def write_response(fout, status, payload):
     blob = json.dumps(payload).encode()
     fout.write(f"HTTP/1.1 {status} {'OK' if status == 200 else 'ERROR'}\r\n"
                f"Content-Type: application/json\r\n"
                f"Content-Length: {len(blob)}\r\n"
                f"Connection: close\r\n\r\n".encode() + blob)
     fout.flush()
+
+
+def serve_one(fin, fout):
+    """Read one request off a pair of byte streams, answer it, done.
+
+    Both modes end up here: socket activation hands us the connection as stdin/stdout, and the
+    foreground server hands us a connection's rfile/wfile. Keeping one function means the
+    resident path can never drift from the path that is exercised every day on macOS.
+    """
+    method, path, headers, body = read_request(fin)
+    if not method:
+        return
+    write_response(fout, *handle(method, path, headers, body))
+
+
+def serve_forever(port=None, host="127.0.0.1", ready=None):
+    """A resident loopback server, for platforms without socket activation (Windows).
+
+    Not used on macOS or Linux, where launchd/systemd start one handler per connection and
+    there is no idle process at all - that is the better arrangement and stays the default.
+    Also handy anywhere as `xthread2social-serve --foreground` when debugging: the tracebacks
+    land on your terminal instead of in the log.
+    """
+    import socketserver
+    from .listener import PORT
+
+    class Handler(socketserver.StreamRequestHandler):
+        timeout = 900                             # a slow upload must not be cut off
+
+        def handle(self):
+            serve_one(self.rfile, self.wfile)
+
+    class Server(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True                # a restart must not hit TIME_WAIT
+        daemon_threads = True
+
+    with Server((host, PORT if port is None else port), Handler) as srv:
+        log(f"foreground server listening on {host}:{srv.server_address[1]}")
+        if ready:
+            ready(srv)                            # tests use this to stop after one request
+        srv.serve_forever()
+
+
+def main(argv=None):
+    config.load()
+    config.resolve_secrets(config.SECRETS + ("LISTENER_TOKEN",))
+    argv = sys.argv[1:] if argv is None else argv
+    if "--foreground" in argv:
+        serve_forever()
+        return 0
+    serve_one(sys.stdin.buffer, sys.stdout.buffer)
     return 0
 
 
