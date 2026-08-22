@@ -203,6 +203,34 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
 6. Userscript + clipboard handoff; then the launchd socket listener.
 7. Ledger + `README.md` (setup, the two-URL invocation, what to do when the reader breaks).
 
+## Windows, if it is ever wanted (not built)
+
+Nothing here is hard; it is a different shape, and the shape is what costs. Socket activation
+is the one macOS/Linux affordance Windows has no equivalent of, and everything else follows
+from replacing it:
+
+- **Resident server instead of none.** Wrap the existing request handler in
+  `socketserver.ThreadingTCPServer` bound to `127.0.0.1:8765` — `serve.handle()` already takes
+  `(method, path, headers, body)`, so the adapter is the only new code (~30 lines), and it is
+  worth having on every platform as a `--serve-foreground` debug mode.
+- **Autostart instead of on-demand.** `schtasks /create /sc onlogon` (built in, no
+  dependency), or a `.cmd`/`.vbs` dropped in `shell:startup`, running `pythonw.exe` so no
+  console window appears. Both are a file write or one subprocess call.
+- **Secret store.** No `security`, no `secret-tool`. Either depend on `keyring` (pulls
+  `pywin32-ctypes`) or call DPAPI's `CryptProtectData` through `ctypes` and keep the blob in
+  `%LOCALAPPDATA%` — user-scoped encryption, ~40 lines, no new dependency.
+- **Already done:** the publish lock falls back from `flock` to `msvcrt.locking`, so `--post`
+  works on Windows today.
+- **Cosmetic:** a PowerShell toast instead of `osascript`/`notify-send`, and honouring
+  `%APPDATA%` rather than `~/.config` for the env file.
+
+The real cost is not the code, it is what the resident process gives up: the current design
+cannot leak, cannot wedge, and needs no restart after a reboot, because between publishes
+there is no process at all. A Windows port trades that for a server that can be silently dead
+when you press the hotkey — which means it also needs a liveness check in `--doctor` and a way
+to restart it. Estimate: half a day to write, and the untestable-from-here problem is worse
+than Linux's, since there is no unit text to assert against.
+
 ## Residual risks (accepted, with the response)
 
 - **Syndication endpoint is undocumented** and could go away. It is a public embed API

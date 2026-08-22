@@ -1,6 +1,8 @@
 """The ledger's job: resume mid-thread, per target, without reposting."""
 import tempfile
+import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from xthread2social.ledger import Ledger
@@ -53,3 +55,28 @@ class TestLock(unittest.TestCase):
                     pass
             with lock("42", p):                   # released on exit
                 pass
+
+
+class TestLockShim(unittest.TestCase):
+    """The lock is the one POSIX-only call in the publish path; keep the fallback wired."""
+
+    def test_windows_falls_back_to_the_msvcrt_byte_lock(self):
+        import builtins
+        from xthread2social import ledger
+        real_import, calls = builtins.__import__, []
+
+        def no_fcntl(name, *a, **kw):
+            if name == "fcntl":
+                raise ImportError("no fcntl on this platform")
+            if name == "msvcrt":
+                calls.append(name)
+                return types.SimpleNamespace(LK_NBLCK=2,
+                                             locking=lambda fd, mode, nbytes: calls.append(
+                                                 ("locking", mode, nbytes)))
+            return real_import(name, *a, **kw)
+
+        with tempfile.TemporaryDirectory() as d:
+            with open(Path(d) / "x.lock", "w") as fh:
+                with mock.patch.object(builtins, "__import__", no_fcntl):
+                    ledger._try_lock(fh)
+        self.assertEqual(calls, ["msvcrt", ("locking", 2, 1)])

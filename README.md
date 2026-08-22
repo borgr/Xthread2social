@@ -16,8 +16,10 @@ tweet's URL too (either order) upgrades the completeness check from a warning to
 macOS and Linux. The publishing engine is pure Python; the two platform-specific pieces are
 the secret store (Keychain / libsecret) and the socket-activated listener behind the browser
 shortcut (launchd / `systemd --user`). Both are installed by the same `--install-listener`,
-which picks the backend for you. Windows runs the CLI but not the listener: it has no socket
-activation, so the shortcut would need a permanently running local server — not built.
+which picks the backend for you. Windows runs the CLI (`--post` included — the publish lock falls
+back to `msvcrt` where there is no `flock`), but has no secret store wired and no listener: it
+has no socket activation, so the browser shortcut would need a resident local server started
+at logon. That is buildable, just a different shape — see [PLAN.md](PLAN.md).
 
 **The Linux path is written but has not been run on a Linux box** (its unit text is covered by
 tests; the live end-to-end is macOS-only so far). If you are the first to try it,

@@ -42,6 +42,22 @@ class Ledger:
         tmp.replace(self.path)                    # atomic: no half-written ledger
 
 
+def _try_lock(f):
+    """Take an exclusive lock on an open file, or raise OSError if someone else holds it.
+
+    flock where there is one, and msvcrt's byte-range lock on Windows - a single byte at
+    offset 0 is enough, and locking past EOF is allowed. Both spellings raise OSError when
+    the lock is held, so the caller needs no branch.
+    """
+    try:
+        import fcntl
+    except ImportError:
+        import msvcrt
+        msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 class Busy(Exception):
     """Another process is already publishing this thread."""
 
@@ -56,13 +72,12 @@ def lock(root_id, path=None):
     whole thread twice, which is exactly the failure the ledger exists to prevent. The lock
     is per thread rather than global so publishing two different threads at once still works.
     """
-    import fcntl
     d = Path(path or DEFAULT).parent
     d.mkdir(parents=True, exist_ok=True)
     f = open(d / f"publish-{root_id}.lock", "w")
     try:
         try:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _try_lock(f)
         except OSError:
             raise Busy(f"thread {root_id} is already being published by another window; "
                        f"wait for it to finish, then re-run to resume if it stopped early")
