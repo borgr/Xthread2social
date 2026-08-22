@@ -213,7 +213,7 @@ process rather than changing the protocol:
   Windows arrangement cannot drift from the one used daily on macOS. Available everywhere as
   `xthread2social-serve --foreground`, which is also the best way to debug the listener on any
   platform - tracebacks go to the terminal instead of the log.
-- **Autostart.** `schtasks /create /sc onlogon` pointing at a generated `.cmd` under
+- **Autostart.** `schtasks /create /sc onlogon /ru <user> /it` pointing at a generated `.cmd` under
   `%LOCALAPPDATA%` that launches `pythonw.exe` (no console window) via `start ""` (so the task
   does not stay "running" forever and refuse to start again). Task Scheduler over a Startup
   folder shortcut because it is queryable: `status()` can ask whether the task exists.
@@ -227,8 +227,39 @@ process rather than changing the protocol:
 - **Cosmetic gap, accepted:** no toast notification on Windows (`notify-send` covers Linux,
   `osascript` macOS); the browser tab already shows the result.
 
-What is untested is exactly what cannot be tested from a Mac: whether `schtasks` accepts the
-task, whether `pythonw.exe` starts the server without a window, and whether DPAPI round-trips.
+## Checked against the documentation instead of a machine
+
+Neither non-Mac backend can run here, so every directive and flag they emit was verified in the
+vendors' own reference and the disagreements fixed. What that pass found and changed:
+
+- **`ExecStart=-`** (leading dash). systemd's inetd example writes it, and without it every
+  handler that exits non-zero - a browser hanging up mid-upload - leaves a failed
+  `xthread2social@N.service` behind until someone runs `systemctl reset-failed`.
+- **`StandardError=journal`, explicitly.** `StandardError` *defaults to inheriting
+  StandardOutput*, which here is the connected socket: one traceback would be spliced into the
+  HTTP body the userscript parses. Naming the journal also drops an `append:` version floor and
+  matches the `journalctl --user -u 'xthread2social@*'` the README tells people to run.
+- **`foo.socket` + `Accept=yes` requires a template `foo@.service`** - the naming was already
+  right, now for a known reason rather than by luck.
+- **`schtasks` can prompt for a password** "even when you schedule a task on the local computer
+  using the current user account", which would have hung `--install-listener` on an inherited
+  console forever. `/ru <user> /it` uses the interactive token so no password is wanted; stdin
+  is closed and a timeout set so a prompt fails loudly rather than blocking.
+- **Bare `/sc onlogon` fires for *any* user** logging in - a second server as someone else,
+  racing for the same port. `/ru` narrows the trigger to one account.
+- **Task Scheduler splits "Task To Run" on whitespace**, so a launcher under
+  `C:\Users\First Last\...` needs inner quoting or it runs `C:\Users\First`. Single quotes,
+  since doubles would be escaped into the value by Python's own Windows quoting.
+- **DPAPI ownership.** `pDataOut.pbData` is freed by `LocalFree` (was already), the plaintext
+  buffer must stay alive across the call (it was a temporary - now a local), and last-error is
+  read through `WinDLL(use_last_error=True)` so nothing can clobber it before the message.
+
+`--print-units` renders the same units without installing, so a first Linux user can run
+`systemd-analyze verify` on them before trusting the installer.
+
+What remains untested is only what a machine can answer: whether `schtasks` accepts the task on
+a real policy, whether `pythonw.exe` in a Windows venv starts the server without a window, and
+whether DPAPI round-trips.
 The pieces that *are* platform-independent - the resident server, the shared request path, the
 lock fallback - are exercised by the suite for real.
 

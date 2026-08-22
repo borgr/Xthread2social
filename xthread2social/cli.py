@@ -190,8 +190,10 @@ def main(argv=None):
                     help="on your own thread, still link back to the tweet (default: no "
                          "credit line at all)")
     ap.add_argument("--install-listener", action="store_true",
-                    help="install the launchd agent that lets the browser shortcut publish "
+                    help="install the agent for this OS that lets the browser shortcut publish "
                          "without a terminal, and print the token to paste into Tampermonkey")
+    ap.add_argument("--print-units", action="store_true",
+                    help="print what --install-listener would write, and install nothing")
     ap.add_argument("--rotate-token", action="store_true",
                     help="with --install-listener: issue a new token (invalidates the old one)")
     ap.add_argument("--uninstall-listener", action="store_true")
@@ -210,6 +212,18 @@ def main(argv=None):
         print(f"[saved] {name} -> Keychain (service 'xthread2social')")
         args.to = [args.set_secret]
         return check_credentials(args)
+
+    if args.print_units:
+        from . import listener
+        try:
+            texts = listener.unit_texts()
+        except (RuntimeError, listener.Unsupported) as e:
+            print(f"[error] {e}", file=sys.stderr)
+            return 2
+        print(f"# {listener.manager()}, port {listener.PORT}")
+        for path, text in texts:
+            print(f"\n# ---- {path} ----\n{text.rstrip()}")
+        return 0
 
     if args.install_listener or args.uninstall_listener:
         from . import listener

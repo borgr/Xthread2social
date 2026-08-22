@@ -75,18 +75,19 @@ def _dpapi(blob, encrypt):
         _fields_ = [("cbData", wintypes.DWORD),
                     ("pbData", ctypes.POINTER(ctypes.c_char))]
 
-    crypt = ctypes.windll.crypt32
+    # use_last_error, so ctypes snapshots GetLastError before anything else can clobber it.
+    crypt = ctypes.WinDLL("crypt32", use_last_error=True)
     fn = crypt.CryptProtectData if encrypt else crypt.CryptUnprotectData
-    src = BLOB(len(blob), ctypes.cast(ctypes.create_string_buffer(blob),
-                                      ctypes.POINTER(ctypes.c_char)))
-    out = BLOB()
+    buf = ctypes.create_string_buffer(blob)      # must outlive the call: a temporary here
+    src = BLOB(len(blob), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))  # could be freed
+    out = BLOB()                                                           # mid-encryption
     if not fn(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
         raise RuntimeError(f"DPAPI {'encrypt' if encrypt else 'decrypt'} failed "
-                           f"(error {ctypes.GetLastError()})")
+                           f"(error {ctypes.get_last_error()})")
     try:
         return ctypes.string_at(out.pbData, out.cbData)
     finally:
-        ctypes.windll.kernel32.LocalFree(out.pbData)
+        ctypes.windll.kernel32.LocalFree(out.pbData)   # documented owner of pDataOut.pbData
 
 
 def keychain(name, service=KEYCHAIN_SERVICE):

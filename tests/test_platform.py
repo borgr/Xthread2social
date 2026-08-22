@@ -5,7 +5,9 @@ sys.platform. That is the only way to test the Linux units from a Mac (and vice 
 unit *text* is the whole contract with systemd, so it is what gets asserted.
 """
 import importlib
+import os
 import pathlib
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -77,9 +79,30 @@ class TestSystemdUnits(unittest.TestCase):
     def test_the_service_gets_the_connection_as_stdin_and_stdout(self):
         with mock.patch.object(self.m, "serve_binary", return_value="/opt/bin/x2s-serve"):
             body = self.m.service_unit_body()
-        self.assertIn("ExecStart=/opt/bin/x2s-serve", body)
+        self.assertIn("ExecStart=-/opt/bin/x2s-serve", body)   # `-`: see below
         self.assertIn("StandardInput=socket", body)
         self.assertIn("StandardOutput=socket", body)
+
+    def test_a_handler_that_dies_leaves_no_failed_unit_to_reset(self):
+        """Without the leading `-`, every browser that hangs up mid-request accumulates a
+        failed xthread2social@N.service until someone runs `systemctl reset-failed`."""
+        with mock.patch.object(self.m, "serve_binary", return_value="/opt/bin/x2s-serve"):
+            self.assertIn("ExecStart=-", self.m.service_unit_body())
+
+    def test_stderr_is_never_the_socket(self):
+        """It defaults to inheriting StandardOutput - here the connection - so one traceback
+        would be spliced into the HTTP response the userscript parses."""
+        with mock.patch.object(self.m, "serve_binary", return_value="/opt/bin/x2s-serve"):
+            body = self.m.service_unit_body()
+        self.assertIn("StandardError=journal", body)
+        self.assertNotIn("StandardError=socket", body)
+
+    def test_print_units_writes_nothing(self):
+        with mock.patch.object(self.m, "serve_binary", return_value="/opt/bin/x2s-serve"), \
+             mock.patch.object(pathlib.Path, "write_text") as wrote:
+            paths = [str(p) for p, _ in self.m.unit_texts()]
+        wrote.assert_not_called()
+        self.assertEqual(paths, [str(self.m.SOCKET_UNIT), str(self.m.SERVICE_UNIT)])
 
     def test_status_names_the_command_a_human_can_rerun(self):
         self.assertIn("systemctl --user status xthread2social.socket",
@@ -163,6 +186,37 @@ class TestWindowsBackend(unittest.TestCase):
         flags = [c.args for c in sched.call_args_list]
         self.assertIn("onlogon", flags[0])
         self.assertIn("/run", flags[-1])
+
+    def test_the_trigger_names_one_user_and_needs_no_stored_password(self):
+        """Bare `onlogon` fires for *any* user logging in - a second server, same port. /it
+        runs with the interactive token, which is what avoids schtasks' password prompt."""
+        with mock.patch.dict(os.environ, {"USERNAME": "someone"}), \
+             mock.patch.object(self.m, "_schtasks",
+                               return_value=mock.Mock(returncode=0, stderr="", stdout="")) as sched, \
+             mock.patch.object(self.m, "_port_open", return_value=True), \
+             mock.patch.object(pathlib.Path, "write_text"), \
+             mock.patch.object(pathlib.Path, "mkdir"), \
+             mock.patch.object(self.m.config, "keychain", return_value="tok"):
+            self.m.install()
+        create = sched.call_args_list[0].args
+        self.assertEqual(create[create.index("/ru") + 1], "someone")
+        self.assertIn("/it", create)
+
+    def test_schtasks_can_never_block_on_a_prompt(self):
+        with mock.patch("subprocess.run") as run:
+            self.m._schtasks("/query")
+        self.assertEqual(run.call_args[1]["stdin"], subprocess.DEVNULL)
+        self.assertTrue(run.call_args[1]["timeout"])
+
+    def test_a_launcher_path_with_a_space_is_quoted_for_task_scheduler(self):
+        """Task Scheduler splits Task To Run on whitespace, so an unquoted
+        `C:\\Users\\First Last\\...` would try to run `C:\\Users\\First`."""
+        spaced = pathlib.PurePath("C:/Users/First Last/x.cmd")
+        with mock.patch.object(self.m, "LAUNCHER", spaced):
+            self.assertEqual(self.m._task_run_value(), f"'{spaced}'")
+        plain = pathlib.PurePath("C:/tools/x.cmd")
+        with mock.patch.object(self.m, "LAUNCHER", plain):
+            self.assertEqual(self.m._task_run_value(), str(plain))
 
 
 class TestDpapi(unittest.TestCase):

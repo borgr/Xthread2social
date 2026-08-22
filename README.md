@@ -31,9 +31,12 @@ arrangements call the same `serve_one()`, so the request path cannot drift betwe
 
 **Only the macOS path has been run end to end.** Linux and Windows are covered by tests that
 assert the unit text, the launcher script and the resident server (which does get exercised for
-real, on a socket, since it is platform-independent code) — but neither has been installed on
-its own OS. If you are first: `xthread2social --doctor` names the layer that broke,
-`journalctl --user -u 'xthread2social@*'` has the Linux handler's errors, and on Windows
+real, on a socket, since it is platform-independent code), and every flag and unit directive
+they emit is checked against systemd's and Microsoft's own documentation — but neither has been
+installed on its own OS. Before you install, `xthread2social --print-units` prints exactly what
+would be written and touches nothing, so on Linux you can hand it to
+`systemd-analyze verify /dev/stdin` first. After: `xthread2social --doctor` names the layer that
+broke, `journalctl --user -u 'xthread2social@*'` has the Linux handler's errors, and on Windows
 `xthread2social-serve --foreground` runs the server in a console where you can watch it.
 
 ## Install (works the same on a new machine)
@@ -129,6 +132,7 @@ must not be able to post as `colab-links`.
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--doctor` | check every layer and print which one is broken (see below) |
+| `--print-units` | print what `--install-listener` would write, and install nothing |
 | `--install-listener` | install the socket-activated agent for the browser shortcut, print its token |
 | `--uninstall-listener` | remove that agent |
 
@@ -201,8 +205,8 @@ Everything is in this one repo: the Python runner and the userscript are two hal
 same install, not two projects. Nothing here is account- or machine-specific — no credential,
 no handle, no path — so a friend needs no fork and no edit:
 
-1. macOS or Linux with Python 3.10+ (see [Platforms](#platforms) — Windows gets the CLI only,
-   and the Linux listener is so far untested on real hardware).
+1. macOS, Linux or Windows with Python 3.10+ (see [Platforms](#platforms) — only the macOS
+   listener has run on real hardware).
 2. The three blocks above, in order: **Install** (clone, venv, `pip install -e . regex`,
    symlink onto PATH), **Configure** (their own Bluesky app password and Mastodon access token
    with `read:accounts`, `write:statuses`, `write:media`), **Browser shortcut**
@@ -254,5 +258,5 @@ fallback path, and the reason `thread.json` is the only interface between readin
 change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 
 ```bash
-python3 -m unittest discover -s tests      # 88 tests, offline except one secret-store round-trip
+python3 -m unittest discover -s tests      # 105 tests, offline except one secret-store round-trip
 ```

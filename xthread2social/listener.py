@@ -158,14 +158,21 @@ def socket_unit_body():
 def service_unit_body():
     """A template unit: systemd starts xthread2social@<n>.service per accepted connection,
     with the connection itself as stdin/stdout - exactly what launchd's inetdCompatibility
-    does, so the handler is identical."""
+    does, so the handler is identical.
+
+    A browser that hangs up mid-request makes the handler die non-zero, and without the `-`
+    prefix on ExecStart each of those leaves a failed instance unit behind until someone runs
+    `systemctl reset-failed` - the same reason systemd's own inetd example writes `ExecStart=-`.
+    StandardError is set explicitly because it otherwise *inherits StandardOutput*, i.e. the
+    connected socket, so one traceback would be spliced into the HTTP response body.
+    """
     return (f"[Unit]\n"
             f"Description=Xthread2social publish handler\n\n"
             f"[Service]\n"
-            f"ExecStart={serve_binary()}\n"
+            f"ExecStart=-{serve_binary()}\n"
             f"StandardInput=socket\n"
             f"StandardOutput=socket\n"
-            f"StandardError=append:{ERR_LOG}\n")
+            f"StandardError=journal\n")
 
 
 def _systemctl(*args):
@@ -216,7 +223,25 @@ def launcher_body():
 
 
 def _schtasks(*args):
-    return subprocess.run(["schtasks", *args], capture_output=True, text=True)
+    # stdin closed and a deadline, because schtasks is documented to prompt for a run-as
+    # password "even when you schedule a task on the local computer using the current user
+    # account" - and a prompt with an inherited console would hang --install-listener forever.
+    # /ru + /it below is what makes that prompt not happen; this is the belt to that braces.
+    return subprocess.run(["schtasks", *args], capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, timeout=60)
+
+
+def _task_run_value():
+    """The /tr value: the launcher path, single-quoted only if it contains a space.
+
+    Task Scheduler splits "Task To Run" on whitespace into program + arguments, so a path
+    under `C:\\Users\\First Last\\…` must arrive quoted or the task silently runs
+    `C:\\Users\\First`. Double quotes cannot be used: subprocess's Windows quoting would
+    escape them into the value itself. Single quotes are what Task Scheduler's own parser
+    accepts here, and are left off otherwise so the common case stays literal.
+    """
+    p = str(LAUNCHER)
+    return f"'{p}'" if " " in p else p
 
 
 def _port_open():
@@ -237,10 +262,18 @@ def _port_open():
 def _install_windows():
     WIN_DIR.mkdir(parents=True, exist_ok=True)
     LAUNCHER.write_text(launcher_body())
+    # /ru <me>: bare `onlogon` fires for *any* user logging in, which would start a second
+    # server as someone else and lose the race for the port. Naming the user also narrows the
+    # trigger to that user's logon. /it: run with the interactive token, which is what lets a
+    # task be created with no stored password (and the user is logged on by definition here).
     r = _schtasks("/create", "/tn", TASK_NAME, "/sc", "onlogon",
-                  "/tr", f'"{LAUNCHER}"', "/f")
+                  "/ru", os.environ.get("USERNAME") or "", "/it",
+                  "/tr", _task_run_value(), "/f")
     if r.returncode != 0:
-        raise RuntimeError(f"schtasks refused the task: {r.stderr.strip() or r.stdout.strip()}")
+        raise RuntimeError(
+            f"schtasks refused the task: {r.stderr.strip() or r.stdout.strip()}\n"
+            f"If it says access is denied, run the same command from an elevated "
+            f"Command Prompt (some policies allow only administrators to add tasks).")
     if not _port_open():
         _schtasks("/run", "/tn", TASK_NAME)       # start it now, not at the next logon
 
@@ -287,6 +320,24 @@ def status():
     else:
         loaded = False
     return loaded, bool(config.keychain(TOKEN_NAME))
+
+
+def unit_texts():
+    """[(path, text)] for what install() would write, without writing anything.
+
+    The point is that a first Linux or Windows user can check the generated unit before
+    trusting it - `xthread2social --print-units | systemd-analyze verify /dev/stdin` on Linux,
+    or just reading the .cmd on Windows - since neither backend has yet run on its own OS.
+    """
+    if IS_MAC:
+        return [(PLIST, plistlib.dumps(plist_body()).decode())]
+    if IS_WIN:
+        return [(LAUNCHER, launcher_body()),
+                (Path("schtasks"), "schtasks /create /tn \"%s\" /sc onlogon /ru %s /it "
+                                   "/tr %s /f\n" % (TASK_NAME,
+                                                    os.environ.get("USERNAME") or "",
+                                                    _task_run_value()))]
+    return [(SOCKET_UNIT, socket_unit_body()), (SERVICE_UNIT, service_unit_body())]
 
 
 def status_command():
