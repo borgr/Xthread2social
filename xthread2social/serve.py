@@ -9,9 +9,11 @@ Requests must carry `X-Token` matching the Keychain-stored LISTENER_TOKEN, so a 
 page cannot make you publish. Two routes, deliberately: /preview renders and returns the
 posts, /publish writes them. The browser shows the preview and asks before calling /publish.
 """
+import errno
 import json
 import os
 import shlex
+import socket
 import subprocess
 import sys
 import traceback
@@ -244,16 +246,13 @@ def serve_one(fin, fout):
     write_response(fout, *handle(method, path, headers, body))
 
 
-def serve_forever(port=None, host="127.0.0.1", ready=None):
-    """A resident loopback server, for platforms without socket activation (Windows).
+def _server_classes():
+    """The resident server and its handler.
 
-    Not used on macOS or Linux, where launchd/systemd start one handler per connection and
-    there is no idle process at all - that is the better arrangement and stays the default.
-    Also handy anywhere as `xthread2social-serve --foreground` when debugging: the tracebacks
-    land on your terminal instead of in the log.
+    Built here rather than at import time so socketserver is only loaded on the one platform
+    that needs a resident server, and so the address-reuse decision below is testable.
     """
     import socketserver
-    from .listener import PORT
 
     class Handler(socketserver.StreamRequestHandler):
         timeout = 900                             # a slow upload must not be cut off
@@ -262,10 +261,43 @@ def serve_forever(port=None, host="127.0.0.1", ready=None):
             serve_one(self.rfile, self.wfile)
 
     class Server(socketserver.ThreadingTCPServer):
-        allow_reuse_address = True                # a restart must not hit TIME_WAIT
+        # SO_REUSEADDR does not mean the same thing on Windows: there it lets *another*
+        # process bind this exact address and take over the connections, which would hand the
+        # browser's token to whatever bound second. Windows gets SO_EXCLUSIVEADDRUSE instead
+        # (set in server_bind below); TIME_WAIT on a loopback listener costs one retry at
+        # worst, which is a far better trade than a hijackable publish endpoint.
+        allow_reuse_address = sys.platform != "win32"
         daemon_threads = True
 
-    with Server((host, PORT if port is None else port), Handler) as srv:
+        def server_bind(self):
+            exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
+            if exclusive is not None:
+                self.socket.setsockopt(socket.SOL_SOCKET, exclusive, 1)
+            super().server_bind()
+
+    return Server, Handler
+
+
+def serve_forever(port=None, host="127.0.0.1", ready=None):
+    """A resident loopback server, for platforms without socket activation (Windows).
+
+    Not used on macOS or Linux, where launchd/systemd start one handler per connection and
+    there is no idle process at all - that is the better arrangement and stays the default.
+    Also handy anywhere as `xthread2social-serve --foreground` when debugging: the tracebacks
+    land on your terminal instead of in the log.
+    """
+    from .listener import PORT
+    Server, Handler = _server_classes()
+    want = PORT if port is None else port
+    try:
+        srv = Server((host, want), Handler)
+    except OSError as e:
+        if e.errno in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", errno.EADDRINUSE)):
+            raise SystemExit(
+                f"{host}:{want} is already taken - the listener is probably already running "
+                f"(check with `xthread2social --doctor`), or something else holds the port.")
+        raise
+    with srv:
         log(f"foreground server listening on {host}:{srv.server_address[1]}")
         if ready:
             ready(srv)                            # tests use this to stop after one request

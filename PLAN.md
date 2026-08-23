@@ -257,11 +257,46 @@ vendors' own reference and the disagreements fixed. What that pass found and cha
 `--print-units` renders the same units without installing, so a first Linux user can run
 `systemd-analyze verify` on them before trusting the installer.
 
-What remains untested is only what a machine can answer: whether `schtasks` accepts the task on
-a real policy, whether `pythonw.exe` in a Windows venv starts the server without a window, and
-whether DPAPI round-trips.
-The pieces that *are* platform-independent - the resident server, the shared request path, the
-lock fallback - are exercised by the suite for real.
+## Executed without the machine
+
+Documentation review ends at "this reads correctly". A second pass moved three of those pieces
+into code that actually runs on any platform:
+
+- **DPAPI through a compiled stub.** `tests/fixtures/dpapi_stub.c` exports
+  CryptProtectData/CryptUnprotectData/LocalFree with the documented `DATA_BLOB` layout and the
+  documented ownership rule, so `config._dpapi` - struct layout, `byref`, the plaintext buffer's
+  lifetime under GC pressure, `string_at`, the free - is executed for real behind a
+  `_dpapi_libs()` seam. It immediately found a bug review had missed: `ctypes.get_last_error`
+  exists *only* on Windows, so the failure path raised `AttributeError`, which `keychain()` does
+  not catch - a tampered blob would have crashed a publish instead of reading as absent.
+  What the stub cannot check is Microsoft's half: real per-user encryption, and the
+  stdcall/cdecl distinction that exists only on 32-bit Windows.
+- **The launcher's command line.** A test starts
+  `python -m xthread2social.serve --foreground` as a subprocess on a free port and asserts it
+  answers an untokened GET with 403, so a renamed module or a missing `__main__` guard cannot
+  wait until someone installs it on Windows to show up. Only `pythonw.exe` and `start ""` in
+  that line remain Windows-specific.
+- **`systemd-analyze verify`, the part of it that runs on a Mac.** Both units are parsed with
+  `configparser` against a whitelist of real directives, because systemd *silently ignores*
+  unknown keys - a `StandarInput=` typo would otherwise install cleanly and reset every
+  connection.
+
+Two defects were fixed in the same pass, both Windows-only:
+
+- **The port was hijackable.** `SO_REUSEADDR` does not mean on Windows what it means on Unix:
+  it lets *another* process bind the same address and receive the connections, i.e. take the
+  browser's capability token. Windows now gets `SO_EXCLUSIVEADDRUSE` and
+  `allow_reuse_address = False`; a TIME_WAIT retry on a loopback listener is a far better trade.
+- **`schtasks` gets a ladder, not one attempt.** `/ru <user> /it`, then `/ru <user> /np`, then
+  plain `onlogon` - because `/ru` can be refused where policy forbids naming a run-as account
+  and `/it` where the principal has no interactive logon right. An install ends up working, or
+  reports all three refusals together.
+
+What still needs a real machine: whether `schtasks` accepts the task under an actual policy,
+whether `pythonw.exe` in a Windows venv starts the server with no window, whether real DPAPI
+round-trips, and whether `systemctl --user enable --now` brings the socket up on a live desktop
+session. The pieces that *are* platform-independent - the resident server, the shared request
+path, the lock fallback - are exercised by the suite for real.
 
 ## Residual risks (accepted, with the response)
 

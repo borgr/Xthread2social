@@ -259,21 +259,43 @@ def _port_open():
         return False
 
 
+def _task_variants():
+    """The /create argument lists to try, most correct first.
+
+    A ladder rather than one attempt, because what a given Windows will accept cannot be
+    checked from here: /ru can be refused where policy forbids naming a run-as account, and
+    /it can be refused for a principal that has no interactive logon right. Each rung drops
+    the flag that the rung above it might have been rejected for, and the last is the plain
+    form from Microsoft's own onlogon example - so an install ends up working and `--doctor`
+    reports what it got, instead of an error telling the user to read documentation.
+    """
+    user = os.environ.get("USERNAME") or ""
+    base = ("/create", "/tn", TASK_NAME, "/sc", "onlogon")
+    tail = ("/tr", _task_run_value(), "/f")
+    rungs = []
+    if user:
+        rungs.append((*base, "/ru", user, "/it", *tail))     # one user, interactive token
+        rungs.append((*base, "/ru", user, "/np", *tail))     # no stored password, no console
+    rungs.append((*base, *tail))                             # any user logging on
+    return rungs
+
+
 def _install_windows():
     WIN_DIR.mkdir(parents=True, exist_ok=True)
     LAUNCHER.write_text(launcher_body())
-    # /ru <me>: bare `onlogon` fires for *any* user logging in, which would start a second
-    # server as someone else and lose the race for the port. Naming the user also narrows the
-    # trigger to that user's logon. /it: run with the interactive token, which is what lets a
-    # task be created with no stored password (and the user is logged on by definition here).
-    r = _schtasks("/create", "/tn", TASK_NAME, "/sc", "onlogon",
-                  "/ru", os.environ.get("USERNAME") or "", "/it",
-                  "/tr", _task_run_value(), "/f")
-    if r.returncode != 0:
+    failures = []
+    for argv in _task_variants():
+        r = _schtasks(*argv)
+        if r.returncode == 0:
+            break
+        failures.append(f"{' '.join(argv[5:-3])or 'plain onlogon'}: "
+                        f"{(r.stderr or r.stdout).strip()}")
+    else:
         raise RuntimeError(
-            f"schtasks refused the task: {r.stderr.strip() or r.stdout.strip()}\n"
-            f"If it says access is denied, run the same command from an elevated "
-            f"Command Prompt (some policies allow only administrators to add tasks).")
+            "schtasks refused the task in every form:\n  " + "\n  ".join(failures) +
+            "\nIf it says access is denied, run `xthread2social --install-listener` from an "
+            "elevated Command Prompt (some policies allow only administrators to add tasks). "
+            "The CLI itself works without any of this: `xthread2social <url> --post`.")
     if not _port_open():
         _schtasks("/run", "/tn", TASK_NAME)       # start it now, not at the next logon
 

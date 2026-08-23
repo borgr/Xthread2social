@@ -33,7 +33,11 @@ arrangements call the same `serve_one()`, so the request path cannot drift betwe
 assert the unit text, the launcher script and the resident server (which does get exercised for
 real, on a socket, since it is platform-independent code), and every flag and unit directive
 they emit is checked against systemd's and Microsoft's own documentation — but neither has been
-installed on its own OS. Before you install, `xthread2social --print-units` prints exactly what
+installed on its own OS. Two pieces that would otherwise ship never having run do run here:
+the Windows secret store's `ctypes` marshalling is executed against a compiled stub that exports
+the same three DPAPI symbols with the same `DATA_BLOB` layout and ownership rule, and the exact
+command line the Windows launcher issues (`python -m xthread2social.serve --foreground`) is
+started as a subprocess and answers a request. Before you install, `xthread2social --print-units` prints exactly what
 would be written and touches nothing, so on Linux you can hand it to
 `systemd-analyze verify /dev/stdin` first. After: `xthread2social --doctor` names the layer that
 broke, `journalctl --user -u 'xthread2social@*'` has the Linux handler's errors, and on Windows
@@ -258,5 +262,5 @@ fallback path, and the reason `thread.json` is the only interface between readin
 change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 
 ```bash
-python3 -m unittest discover -s tests      # 105 tests, offline except one secret-store round-trip
+python3 -m unittest discover -s tests      # 122 tests, offline except one secret-store round-trip
 ```

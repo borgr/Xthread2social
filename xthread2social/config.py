@@ -66,28 +66,44 @@ def _dpapi_path(name, service):
     return _dpapi_dir() / f"{safe}.bin"
 
 
+def _dpapi_libs():
+    """(crypt32, kernel32), loaded with use_last_error so GetLastError survives the return.
+
+    Pulled out as a seam on purpose: no Windows machine is available here, so the test suite
+    substitutes a compiled stub exporting the same three symbols with the same DATA_BLOB
+    layout. That is what gets the marshalling below *executed* rather than only reviewed.
+    """
+    import ctypes
+    return (ctypes.WinDLL("crypt32", use_last_error=True),
+            ctypes.WinDLL("kernel32", use_last_error=True))
+
+
 def _dpapi(blob, encrypt):
     """Round-trip a bytestring through CryptProtectData/CryptUnprotectData."""
     import ctypes
-    from ctypes import wintypes
 
     class BLOB(ctypes.Structure):
-        _fields_ = [("cbData", wintypes.DWORD),
+        # c_uint32, not wintypes.DWORD: DWORD is c_ulong, which is 8 bytes off-Windows, so the
+        # stub-backed test would exercise a struct layout Windows never sees. 32 bits is what
+        # DATA_BLOB.cbData is on every Windows.
+        _fields_ = [("cbData", ctypes.c_uint32),
                     ("pbData", ctypes.POINTER(ctypes.c_char))]
 
-    # use_last_error, so ctypes snapshots GetLastError before anything else can clobber it.
-    crypt = ctypes.WinDLL("crypt32", use_last_error=True)
+    crypt, kernel = _dpapi_libs()
     fn = crypt.CryptProtectData if encrypt else crypt.CryptUnprotectData
     buf = ctypes.create_string_buffer(blob)      # must outlive the call: a temporary here
     src = BLOB(len(blob), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))  # could be freed
     out = BLOB()                                                           # mid-encryption
     if not fn(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
-        raise RuntimeError(f"DPAPI {'encrypt' if encrypt else 'decrypt'} failed "
-                           f"(error {ctypes.get_last_error()})")
+        # get_last_error exists only on Windows, and this line is reachable off it (the stub
+        # the tests build to exercise this code at all). Losing the code beats AttributeError:
+        # keychain() catches RuntimeError, so a tampered blob must arrive as one, not crash.
+        code = getattr(ctypes, "get_last_error", lambda: 0)()
+        raise RuntimeError(f"DPAPI {'encrypt' if encrypt else 'decrypt'} failed (error {code})")
     try:
         return ctypes.string_at(out.pbData, out.cbData)
     finally:
-        ctypes.windll.kernel32.LocalFree(out.pbData)   # documented owner of pDataOut.pbData
+        kernel.LocalFree(out.pbData)          # documented owner of pDataOut.pbData
 
 
 def keychain(name, service=KEYCHAIN_SERVICE):
