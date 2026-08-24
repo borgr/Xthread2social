@@ -69,9 +69,7 @@ def _dpapi_path(name, service):
 def _dpapi_libs():
     """(crypt32, kernel32), loaded with use_last_error so GetLastError survives the return.
 
-    Pulled out as a seam on purpose: no Windows machine is available here, so the test suite
-    substitutes a compiled stub exporting the same three symbols with the same DATA_BLOB
-    layout. That is what gets the marshalling below *executed* rather than only reviewed.
+    A seam. `tests/test_dpapi_stub.py` swaps in a compiled stub exporting the same symbols.
     """
     import ctypes
     return (ctypes.WinDLL("crypt32", use_last_error=True),
@@ -83,21 +81,20 @@ def _dpapi(blob, encrypt):
     import ctypes
 
     class BLOB(ctypes.Structure):
-        # c_uint32, not wintypes.DWORD: DWORD is c_ulong, which is 8 bytes off-Windows, so the
-        # stub-backed test would exercise a struct layout Windows never sees. 32 bits is what
-        # DATA_BLOB.cbData is on every Windows.
+        # cbData is 32 bits wide on every Windows. wintypes.DWORD would be c_ulong, 8 bytes
+        # off-Windows, and the stub-backed test would then use a layout Windows never has.
         _fields_ = [("cbData", ctypes.c_uint32),
                     ("pbData", ctypes.POINTER(ctypes.c_char))]
 
     crypt, kernel = _dpapi_libs()
     fn = crypt.CryptProtectData if encrypt else crypt.CryptUnprotectData
-    buf = ctypes.create_string_buffer(blob)      # must outlive the call: a temporary here
-    src = BLOB(len(blob), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))  # could be freed
-    out = BLOB()                                                           # mid-encryption
+    buf = ctypes.create_string_buffer(blob)      # keep the name - an inlined temporary can
+    src = BLOB(len(blob), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))  # be freed mid-call
+    out = BLOB()
     if not fn(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
-        # get_last_error exists only on Windows, and this line is reachable off it (the stub
-        # the tests build to exercise this code at all). Losing the code beats AttributeError:
-        # keychain() catches RuntimeError, so a tampered blob must arrive as one, not crash.
+        # get_last_error exists only on Windows and this line is reachable off it, so the
+        # code is dropped rather than raised. keychain() catches RuntimeError only, so a
+        # tampered blob has to arrive as one.
         code = getattr(ctypes, "get_last_error", lambda: 0)()
         raise RuntimeError(f"DPAPI {'encrypt' if encrypt else 'decrypt'} failed (error {code})")
     try:

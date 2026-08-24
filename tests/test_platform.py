@@ -109,10 +109,10 @@ class TestSystemdUnits(unittest.TestCase):
                       self.m.status_command())
 
     def test_both_units_parse_and_use_only_real_directives(self):
-        """systemd-analyze verify cannot run here, so this is the part of it that can: unit
-        files are INI, and it *ignores* a key it does not know (`StandarInput=socket` would
-        install cleanly and then quietly not pass the socket). Every key is checked against
-        the directive list from systemd.socket(5)/systemd.service(5)/systemd.exec(5)."""
+        """systemd ignores a directive it does not know, so `StandarInput=socket` would
+        install cleanly and then never pass the socket. Every key in both units is checked
+        against the directive list from systemd.socket(5), systemd.service(5)
+        and systemd.exec(5)."""
         import configparser
         known = {
             "Unit": {"Description", "Documentation", "After", "Requires", "Wants",
@@ -368,10 +368,9 @@ class TestForegroundServer(unittest.TestCase):
         self.assertIn("already taken", str(caught.exception))
 
     def test_the_windows_launcher_command_line_actually_starts_a_server(self):
-        """The .cmd runs `<python> -m xthread2social.serve --foreground`. Only pythonw.exe and
-        `start ""` are Windows-specific in that line; the rest is checked here for real, so a
-        renamed module or a missing __main__ guard cannot go unnoticed until someone installs
-        it on Windows."""
+        """The .cmd runs `<python> -m xthread2social.serve --foreground`, of which only
+        pythonw.exe and `start ""` are Windows-specific. Guards against a renamed module or a
+        dropped __main__ guard."""
         import socket
         import subprocess
         import sys as _sys

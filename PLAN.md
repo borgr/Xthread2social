@@ -227,76 +227,38 @@ process rather than changing the protocol:
 - **Cosmetic gap, accepted:** no toast notification on Windows (`notify-send` covers Linux,
   `osascript` macOS); the browser tab already shows the result.
 
-## Checked against the documentation instead of a machine
+## Non-Mac backends — how far they are verified
 
-Neither non-Mac backend can run here, so every directive and flag they emit was verified in the
-vendors' own reference and the disagreements fixed. What that pass found and changed:
+Only macOS has run end to end. The rest of this section is the state of the other two, so
+nobody has to re-derive it.
 
-- **`ExecStart=-`** (leading dash). systemd's inetd example writes it, and without it every
-  handler that exits non-zero - a browser hanging up mid-upload - leaves a failed
-  `xthread2social@N.service` behind until someone runs `systemctl reset-failed`.
-- **`StandardError=journal`, explicitly.** `StandardError` *defaults to inheriting
-  StandardOutput*, which here is the connected socket: one traceback would be spliced into the
-  HTTP body the userscript parses. Naming the journal also drops an `append:` version floor and
-  matches the `journalctl --user -u 'xthread2social@*'` the README tells people to run.
-- **`foo.socket` + `Accept=yes` requires a template `foo@.service`** - the naming was already
-  right, now for a known reason rather than by luck.
-- **`schtasks` can prompt for a password** "even when you schedule a task on the local computer
-  using the current user account", which would have hung `--install-listener` on an inherited
-  console forever. `/ru <user> /it` uses the interactive token so no password is wanted; stdin
-  is closed and a timeout set so a prompt fails loudly rather than blocking.
-- **Bare `/sc onlogon` fires for *any* user** logging in - a second server as someone else,
-  racing for the same port. `/ru` narrows the trigger to one account.
-- **Task Scheduler splits "Task To Run" on whitespace**, so a launcher under
-  `C:\Users\First Last\...` needs inner quoting or it runs `C:\Users\First`. Single quotes,
-  since doubles would be escaped into the value by Python's own Windows quoting.
-- **DPAPI ownership.** `pDataOut.pbData` is freed by `LocalFree` (was already), the plaintext
-  buffer must stay alive across the call (it was a temporary - now a local), and last-error is
-  read through `WinDLL(use_last_error=True)` so nothing can clobber it before the message.
+**Runs for real on any platform.** The resident server and the shared request path, the lock
+fallback, the Windows secret store's `ctypes` marshalling (against `tests/fixtures/dpapi_stub.c`,
+which exports the three DPAPI symbols with the documented `DATA_BLOB` layout and ownership
+rule), and the command line the Windows launcher issues, started as a subprocess and answering.
 
-`--print-units` renders the same units without installing, so a first Linux user can run
-`systemd-analyze verify` on them before trusting the installer.
+**Checked against the vendors' reference, not executed.** Every directive and flag the units
+emit. The traps worth keeping in mind before editing them:
 
-## Executed without the machine
+- `ExecStart=-` — without the dash, a browser hanging up mid-upload leaves a failed
+  `xthread2social@N.service` until someone runs `systemctl reset-failed`.
+- `StandardError=journal` — the default is to inherit StandardOutput, which here is the
+  connected socket, so a traceback would land inside the HTTP body the userscript parses.
+- `Accept=yes` instantiates `<socket prefix>@.service`, so the template name is load-bearing.
+- Bare `/sc onlogon` fires for any user logging in, `/ru` narrows it to one account, and `/it`
+  avoids the password prompt schtasks issues even for the current user.
+- Task Scheduler splits `/tr` on whitespace, so a launcher path containing a space needs
+  single quotes around it.
+- DPAPI hands ownership of `pDataOut.pbData` to the caller, and the plaintext buffer has to
+  stay referenced across the call.
 
-Documentation review ends at "this reads correctly". A second pass moved three of those pieces
-into code that actually runs on any platform:
+`--print-units` renders the units without installing, so a first Linux user can pipe them
+through `systemd-analyze verify` first.
 
-- **DPAPI through a compiled stub.** `tests/fixtures/dpapi_stub.c` exports
-  CryptProtectData/CryptUnprotectData/LocalFree with the documented `DATA_BLOB` layout and the
-  documented ownership rule, so `config._dpapi` - struct layout, `byref`, the plaintext buffer's
-  lifetime under GC pressure, `string_at`, the free - is executed for real behind a
-  `_dpapi_libs()` seam. It immediately found a bug review had missed: `ctypes.get_last_error`
-  exists *only* on Windows, so the failure path raised `AttributeError`, which `keychain()` does
-  not catch - a tampered blob would have crashed a publish instead of reading as absent.
-  What the stub cannot check is Microsoft's half: real per-user encryption, and the
-  stdcall/cdecl distinction that exists only on 32-bit Windows.
-- **The launcher's command line.** A test starts
-  `python -m xthread2social.serve --foreground` as a subprocess on a free port and asserts it
-  answers an untokened GET with 403, so a renamed module or a missing `__main__` guard cannot
-  wait until someone installs it on Windows to show up. Only `pythonw.exe` and `start ""` in
-  that line remain Windows-specific.
-- **`systemd-analyze verify`, the part of it that runs on a Mac.** Both units are parsed with
-  `configparser` against a whitelist of real directives, because systemd *silently ignores*
-  unknown keys - a `StandarInput=` typo would otherwise install cleanly and reset every
-  connection.
-
-Two defects were fixed in the same pass, both Windows-only:
-
-- **The port was hijackable.** `SO_REUSEADDR` does not mean on Windows what it means on Unix:
-  it lets *another* process bind the same address and receive the connections, i.e. take the
-  browser's capability token. Windows now gets `SO_EXCLUSIVEADDRUSE` and
-  `allow_reuse_address = False`; a TIME_WAIT retry on a loopback listener is a far better trade.
-- **`schtasks` gets a ladder, not one attempt.** `/ru <user> /it`, then `/ru <user> /np`, then
-  plain `onlogon` - because `/ru` can be refused where policy forbids naming a run-as account
-  and `/it` where the principal has no interactive logon right. An install ends up working, or
-  reports all three refusals together.
-
-What still needs a real machine: whether `schtasks` accepts the task under an actual policy,
-whether `pythonw.exe` in a Windows venv starts the server with no window, whether real DPAPI
-round-trips, and whether `systemctl --user enable --now` brings the socket up on a live desktop
-session. The pieces that *are* platform-independent - the resident server, the shared request
-path, the lock fallback - are exercised by the suite for real.
+**Still needs a machine.** Whether schtasks accepts the task under a real policy, whether
+`pythonw.exe` in a Windows venv starts the server with no window, whether real DPAPI
+round-trips, and whether `systemctl --user enable --now` brings the socket up in a live
+desktop session.
 
 ## Residual risks (accepted, with the response)
 

@@ -249,8 +249,8 @@ def serve_one(fin, fout):
 def _server_classes():
     """The resident server and its handler.
 
-    Built here rather than at import time so socketserver is only loaded on the one platform
-    that needs a resident server, and so the address-reuse decision below is testable.
+    Built lazily so socketserver loads only where a resident server is used, and so the
+    address-reuse choice below can be asserted in a test.
     """
     import socketserver
 
@@ -261,11 +261,9 @@ def _server_classes():
             serve_one(self.rfile, self.wfile)
 
     class Server(socketserver.ThreadingTCPServer):
-        # SO_REUSEADDR does not mean the same thing on Windows: there it lets *another*
-        # process bind this exact address and take over the connections, which would hand the
-        # browser's token to whatever bound second. Windows gets SO_EXCLUSIVEADDRUSE instead
-        # (set in server_bind below); TIME_WAIT on a loopback listener costs one retry at
-        # worst, which is a far better trade than a hijackable publish endpoint.
+        # On Windows SO_REUSEADDR lets another process bind this same address and receive
+        # the connections, token included, so it stays off there and server_bind sets
+        # SO_EXCLUSIVEADDRUSE. The cost is one retry while the port is in TIME_WAIT.
         allow_reuse_address = sys.platform != "win32"
         daemon_threads = True
 
@@ -281,10 +279,9 @@ def _server_classes():
 def serve_forever(port=None, host="127.0.0.1", ready=None):
     """A resident loopback server, for platforms without socket activation (Windows).
 
-    Not used on macOS or Linux, where launchd/systemd start one handler per connection and
-    there is no idle process at all - that is the better arrangement and stays the default.
-    Also handy anywhere as `xthread2social-serve --foreground` when debugging: the tracebacks
-    land on your terminal instead of in the log.
+    Unused on macOS and Linux, where launchd and systemd start one handler per connection.
+    Available anywhere as `xthread2social-serve --foreground`, which puts tracebacks on the
+    terminal instead of in the log.
     """
     from .listener import PORT
     Server, Handler = _server_classes()

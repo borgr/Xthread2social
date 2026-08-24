@@ -29,19 +29,15 @@ arrangement that can be registered and yet dead when you press the hotkey, which
 `--doctor` there checks that the port answers, not just that the task exists. Both
 arrangements call the same `serve_one()`, so the request path cannot drift between them.
 
-**Only the macOS path has been run end to end.** Linux and Windows are covered by tests that
-assert the unit text, the launcher script and the resident server (which does get exercised for
-real, on a socket, since it is platform-independent code), and every flag and unit directive
-they emit is checked against systemd's and Microsoft's own documentation — but neither has been
-installed on its own OS. Two pieces that would otherwise ship never having run do run here:
-the Windows secret store's `ctypes` marshalling is executed against a compiled stub that exports
-the same three DPAPI symbols with the same `DATA_BLOB` layout and ownership rule, and the exact
-command line the Windows launcher issues (`python -m xthread2social.serve --foreground`) is
-started as a subprocess and answers a request. Before you install, `xthread2social --print-units` prints exactly what
-would be written and touches nothing, so on Linux you can hand it to
-`systemd-analyze verify /dev/stdin` first. After: `xthread2social --doctor` names the layer that
-broke, `journalctl --user -u 'xthread2social@*'` has the Linux handler's errors, and on Windows
-`xthread2social-serve --foreground` runs the server in a console where you can watch it.
+**Only the macOS path has been run end to end.** Linux and Windows are covered by tests over
+the unit text, the launcher script, the resident server and the Windows secret store's `ctypes`
+marshalling (against a compiled DPAPI stub), and every directive they emit is checked against
+systemd's and Microsoft's reference. `PLAN.md` records exactly which parts execute here and
+which only read correctly. Before installing, `xthread2social --print-units` prints what would
+be written and touches nothing, so on Linux you can pipe it through
+`systemd-analyze verify /dev/stdin`. Afterwards `xthread2social --doctor` names the layer that
+broke, `journalctl --user -u 'xthread2social@*'` holds the Linux handler's errors, and
+`xthread2social-serve --foreground` runs the server in a console on any platform.
 
 ## Install (works the same on a new machine)
 
@@ -150,10 +146,9 @@ xthread2social --install-listener       # prints a token; installs the agent for
 
 On macOS that writes `~/Library/LaunchAgents/io.github.borgr.xthread2social.plist`; on Linux
 `~/.config/systemd/user/xthread2social.socket` plus a template
-`xthread2social@.service`, then `systemctl --user enable --now`. Either way the init system
-holds `127.0.0.1:8765` and starts the handler *per connection*, with the connected socket as
-its stdin/stdout — so nothing runs between publishes and there is nothing to restart after a
-reboot. On a headless Linux box `systemctl --user` needs `loginctl enable-linger $USER` first.
+`xthread2social@.service`, then `systemctl --user enable --now`. On Windows it writes a `.cmd`
+under `%LOCALAPPDATA%` and registers it with Task Scheduler for logon. On a headless Linux box
+`systemctl --user` needs `loginctl enable-linger $USER` first.
 
 Then install the userscript **from the URL** (not from your disk, so a new machine gets it
 with one click and pushed edits reach every browser):
@@ -241,14 +236,14 @@ posting. Fix the topmost `FAIL`; anything below it is usually a consequence.
 `--doctor` logs in to both accounts, and Bluesky rate-limits session creation - it is a
 diagnosis, not something to put in a loop or a cron job.
 
-Two failures worth naming, because both cost an afternoon here:
+Two failures worth naming, because neither looks like a failure:
 
 - **`serve binary`** — a plist pointing at a path that no longer exists (a moved or rebuilt
   venv) loads cleanly and then resets every connection. `--install-listener` again, from the
   interpreter the package is actually installed in.
 - **`userscript (github)`** — reloading an x.com page does *not* reload the script. Tampermonkey
   swaps in a new copy only on an `@version` bump, so reinstall over the top from the raw URL.
-  Every overlay prints its own version (`… · v0.5.1`) precisely so a stale copy is visible.
+  Every overlay prints its own version in its footer, so a stale copy is visible on sight.
 
 Publishes through the browser are logged with timestamps to
 `~/.local/share/xthread2social/serve.log`, trimmed at 512 KiB so it never needs attention.
@@ -262,5 +257,5 @@ fallback path, and the reason `thread.json` is the only interface between readin
 change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 
 ```bash
-python3 -m unittest discover -s tests      # 122 tests, offline except one secret-store round-trip
+python3 -m unittest discover -s tests      # offline, except one secret-store round-trip
 ```

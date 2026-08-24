@@ -69,11 +69,9 @@ def unit_files():
 def serve_binary():
     """Absolute path to a real `xthread2social-serve`.
 
-    The service manager gets no PATH and no virtualenv, so the unit must name the binary
-    outright. It must also *exist*: installing a unit that points at a missing path yields an
-    agent that loads fine and then resets every connection, which is a miserable thing to
-    debug (it happened - a run under a different interpreter wrote a path from an unrelated
-    conda env).
+    The service manager gets no PATH and no virtualenv, so the unit names the binary outright.
+    A unit pointing at a missing path loads fine and then resets every connection, so the
+    candidates are checked for existence here.
     """
     import shutil
     seen = []
@@ -223,10 +221,8 @@ def launcher_body():
 
 
 def _schtasks(*args):
-    # stdin closed and a deadline, because schtasks is documented to prompt for a run-as
-    # password "even when you schedule a task on the local computer using the current user
-    # account" - and a prompt with an inherited console would hang --install-listener forever.
-    # /ru + /it below is what makes that prompt not happen; this is the belt to that braces.
+    # schtasks can prompt for a run-as password even for the current user, which would hang
+    # --install-listener on an inherited console. Closed stdin and a deadline fail instead.
     return subprocess.run(["schtasks", *args], capture_output=True, text=True,
                           stdin=subprocess.DEVNULL, timeout=60)
 
@@ -234,11 +230,9 @@ def _schtasks(*args):
 def _task_run_value():
     """The /tr value: the launcher path, single-quoted only if it contains a space.
 
-    Task Scheduler splits "Task To Run" on whitespace into program + arguments, so a path
-    under `C:\\Users\\First Last\\…` must arrive quoted or the task silently runs
-    `C:\\Users\\First`. Double quotes cannot be used: subprocess's Windows quoting would
-    escape them into the value itself. Single quotes are what Task Scheduler's own parser
-    accepts here, and are left off otherwise so the common case stays literal.
+    Task Scheduler splits "Task To Run" on whitespace into program and arguments, so a path
+    under `C:\\Users\\First Last\\…` needs quoting or the task runs `C:\\Users\\First`.
+    Single quotes, because subprocess's Windows quoting escapes double quotes into the value.
     """
     p = str(LAUNCHER)
     return f"'{p}'" if " " in p else p
@@ -247,9 +241,8 @@ def _task_run_value():
 def _port_open():
     """Is something actually accepting on the port?
 
-    Windows needs this and the other two do not: with socket activation the init system owns
-    the socket, so "installed" implies "answers". A resident server can be registered at logon
-    and still be dead right now, which is the failure mode this arrangement adds.
+    Only Windows needs it. Socket activation makes "installed" imply "answers", while a
+    resident server can be registered at logon and dead now.
     """
     import socket as _s
     try:
@@ -262,12 +255,9 @@ def _port_open():
 def _task_variants():
     """The /create argument lists to try, most correct first.
 
-    A ladder rather than one attempt, because what a given Windows will accept cannot be
-    checked from here: /ru can be refused where policy forbids naming a run-as account, and
-    /it can be refused for a principal that has no interactive logon right. Each rung drops
-    the flag that the rung above it might have been rejected for, and the last is the plain
-    form from Microsoft's own onlogon example - so an install ends up working and `--doctor`
-    reports what it got, instead of an error telling the user to read documentation.
+    /ru can be refused where policy forbids naming a run-as account, and /it where the
+    principal has no interactive logon right, so each rung drops a flag the one above it may
+    have been rejected for. The last rung is Microsoft's plain onlogon form.
     """
     user = os.environ.get("USERNAME") or ""
     base = ("/create", "/tn", TASK_NAME, "/sc", "onlogon")
@@ -347,9 +337,8 @@ def status():
 def unit_texts():
     """[(path, text)] for what install() would write, without writing anything.
 
-    The point is that a first Linux or Windows user can check the generated unit before
-    trusting it - `xthread2social --print-units | systemd-analyze verify /dev/stdin` on Linux,
-    or just reading the .cmd on Windows - since neither backend has yet run on its own OS.
+    Lets a first Linux user run `xthread2social --print-units | systemd-analyze verify
+    /dev/stdin`, or a Windows user read the .cmd, before installing either.
     """
     if IS_MAC:
         return [(PLIST, plistlib.dumps(plist_body()).decode())]

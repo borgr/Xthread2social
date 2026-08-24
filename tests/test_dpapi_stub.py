@@ -76,9 +76,9 @@ class TestDpapiMarshalling(unittest.TestCase):
         self.assertIn("decrypt", str(caught.exception))
 
     def test_the_plaintext_buffer_outlives_the_call(self):
-        """The bug this guards: `BLOB(len, cast(create_string_buffer(v), …))` leaves the buffer
-        unreferenced, so a GC between building the struct and the call can free the plaintext.
-        Collecting on every allocation makes that window as wide as it can be."""
+        """`BLOB(len, cast(create_string_buffer(v), …))` leaves the buffer unreferenced, so a
+        collection between building the struct and the call can free the plaintext. Collecting
+        around every call widens that window as far as it goes."""
         import gc
         gc.set_debug(0)
         was_on = gc.isenabled()
