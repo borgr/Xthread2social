@@ -66,7 +66,7 @@ def _my_handles():
     return {fallback} if fallback else set()
 
 
-def _is_mine(thread):
+def is_mine(thread):
     return thread.author.lower() in _my_handles()
 
 
@@ -79,7 +79,7 @@ def attribution_for(thread, args):
     """
     if args.no_attribution:
         return ""
-    if _is_mine(thread):
+    if is_mine(thread):
         return f"\n\n{thread.source_url}" if getattr(args, "source_link", False) else ""
     return f"\n\n— x-post from @{thread.author} {thread.source_url}"
 
@@ -90,7 +90,7 @@ def credit_for(thread, args):
     render() picks the longest one that still fits without splitting the opening tweet, and
     falls back to the shortest - the credit is always on the first post either way.
     """
-    if args.no_attribution or _is_mine(thread):
+    if args.no_attribution or is_mine(thread):
         return ""
     h = thread.author
     return [f"\n\n\U0001F501 x-post from @{h}",
@@ -185,7 +185,9 @@ def main(argv=None):
                     help="Mastodon: post replies public too (default: unlisted)")
     ap.add_argument("--note", default="", metavar="TEXT",
                     help="your own words, prepended to the first post above the author's text")
-    ap.add_argument("--no-attribution", action="store_true")
+    ap.add_argument("--no-attribution", action="store_true",
+                    help="post someone else's thread with no credit line, for when the "
+                         "author asked you to carry it under your own name")
     ap.add_argument("--source-link", action="store_true",
                     help="on your own thread, still link back to the tweet (default: no "
                          "credit line at all)")
@@ -259,7 +261,13 @@ def main(argv=None):
                 blob = sys.stdin.read()
             else:
                 blob = pathlib.Path(args.from_json).read_text()
-            thread = Thread.from_json(blob)
+            try:
+                thread = Thread.from_json(blob)
+            except (KeyError, TypeError, ValueError, AttributeError) as e:
+                src = "stdin" if args.from_json == "-" else args.from_json
+                print(f"[read] {src} is not a thread.json ({e}). It needs `author` and a "
+                      f"`tweets` list, in the shape --save-json writes.", file=sys.stderr)
+                return 2
         else:
             if not args.urls:
                 ap.error("give at least one tweet URL, or --from-json")

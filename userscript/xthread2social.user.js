@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.6.1
+// @version      0.7.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*/status/*
 // @match        https://twitter.com/*/status/*
@@ -26,7 +26,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '0.6.1';                // shown in every overlay: the fastest way to
+  const VERSION = '0.7.0';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -166,6 +166,9 @@
       <div id="x2s-posts"></div>` +
       '<div class="row">' +
       kinds.map(k => `<label><input type="checkbox" class="t" value="${k}" checked>${k}</label>`).join('') +
+      (data.credited ? '<label title="For a thread whose author asked you to carry it under ' +
+        'your own name. Off every time the dialog opens."><input type="checkbox" id="x2s-mine">' +
+        'as mine</label>' : '') +
       '<span style="flex:1"></span><button class="cancel">Cancel</button>' +
       '<button class="go">Publish</button></div>';
     const posts = body.querySelector('#x2s-posts');
@@ -173,21 +176,29 @@
     renderPosts(posts, data);
 
     const note = body.querySelector('#x2s-note');
+    // Unchecked on every open, and never remembered between threads: crediting someone is the
+    // default, and a sticky control would silently drop the credit on the next thread.
+    const mine = body.querySelector('#x2s-mine');
     let timer = null, latest = data;
+    const repreview = async () => {
+      try {
+        latest = await call('/preview', {urls, allow_incomplete: true, note: note.value,
+                                         no_attribution: !!(mine && mine.checked)});
+        renderPosts(posts, latest);               // the textarea itself is never re-rendered,
+      } catch (e) { showError(e); }               // so typing is not interrupted
+    };
     note.addEventListener('input', () => {
       clearTimeout(timer);
-      timer = setTimeout(async () => {
-        try {
-          latest = await call('/preview', {urls, allow_incomplete: true, note: note.value});
-          renderPosts(posts, latest);             // the textarea itself is never re-rendered,
-        } catch (e) { showError(e); }             // so typing is not interrupted
-      }, 450);
+      timer = setTimeout(repreview, 450);
     });
+    // Dropping the credit shortens the first post, which can re-split the whole thread, so the
+    // preview is re-rendered rather than left showing text that will not be what posts.
+    if (mine) mine.addEventListener('change', repreview);
 
     body.querySelector('.cancel').onclick = close;
     body.querySelector('.go').onclick = () => {
       const to = [...body.querySelectorAll('.t:checked')].map(c => c.value);
-      if (to.length) doPublish(urls, to, note.value);
+      if (to.length) doPublish(urls, to, note.value, !!(mine && mine.checked));
     };
   }
 
@@ -207,10 +218,11 @@
     body.querySelector('.cancel').onclick = close;
   }
 
-  async function doPublish(urls, to, note) {
+  async function doPublish(urls, to, note, asMine) {
     shell('Xthread2social', 'publishing - uploading images, then posting…');
     try {
-      showResult(await call('/publish', {urls, to, allow_incomplete: true, note: note || ''}));
+      showResult(await call('/publish', {urls, to, allow_incomplete: true, note: note || '',
+                                         no_attribution: !!asMine}));
     } catch (e) { showError(e); }
   }
 

@@ -163,3 +163,74 @@ class TestPreviewLabelsSplits(unittest.TestCase):
         self.assertEqual(body["tweets"], 1)
         self.assertEqual([r["part"] for r in rows], list(range(1, len(rows) + 1)))
         self.assertTrue(all(r["parts"] == len(rows) and r["tweet"] == 1 for r in rows))
+
+
+class TestPostAsMine(unittest.TestCase):
+    """Someone else's thread, carried under your own name because its author asked.
+
+    Off by default on every path. The overlay only offers it when there is a credit to drop,
+    which is what `credited` in the preview payload is for.
+    """
+
+    def setUp(self):
+        _isolate_log(self)
+        self._saved = os.environ.get("X_HANDLES")
+        os.environ["X_HANDLES"] = "me"
+
+    def tearDown(self):
+        if self._saved is None:
+            os.environ.pop("X_HANDLES", None)
+        else:
+            os.environ["X_HANDLES"] = self._saved
+
+    def _preview(self, author, **payload):
+        from xthread2social import serve as sv
+        from xthread2social.model import Thread, Tweet
+        t = Thread(author, [Tweet("11", "their words", author)],
+                   source_url=f"https://x.com/{author}/status/11")
+        old, sv._thread = sv._thread, lambda p: t
+        try:
+            return sv.route_preview({"to": ["bluesky"], "urls": ["11"], **payload})
+        finally:
+            sv._thread = old
+
+    def test_a_foreign_thread_is_flagged_as_creditable(self):
+        body = self._preview("someone")
+        self.assertFalse(body["mine"])
+        self.assertTrue(body["credited"])
+        self.assertIn("@someone", body["targets"]["bluesky"][0]["text"])
+
+    def test_asking_for_no_attribution_removes_every_trace_of_the_author(self):
+        body = self._preview("someone", no_attribution=True)
+        text = " ".join(r["text"] for r in body["targets"]["bluesky"])
+        self.assertNotIn("someone", text)
+        self.assertNotIn("x.com", text)
+
+    def test_my_own_thread_offers_nothing_to_drop(self):
+        body = self._preview("me")
+        self.assertTrue(body["mine"])
+        self.assertFalse(body["credited"])
+
+    def test_the_default_still_credits(self):
+        self.assertIn("@someone", self._preview("someone")["targets"]["bluesky"][0]["text"])
+
+
+class TestOverlayMatchesTheApi(unittest.TestCase):
+    """The overlay is the only caller of these two routes, and it ships from a raw URL rather
+    than from this package, so a rename here has to be visible in the .js as well."""
+
+    def setUp(self):
+        self.js = (Path(__file__).resolve().parent.parent
+                   / "userscript/xthread2social.user.js").read_text()
+
+    def test_both_routes_send_the_no_attribution_flag(self):
+        for route in ("/preview", "/publish"):
+            call = self.js.split(f"call('{route}'", 1)[1][:300]
+            self.assertIn("no_attribution", call, f"{route} does not send it")
+
+    def test_the_control_is_offered_only_when_there_is_a_credit_to_drop(self):
+        self.assertIn("data.credited ?", self.js)
+
+    def test_the_control_starts_unchecked_so_the_default_cannot_drift(self):
+        box = self.js.split('id="x2s-mine"', 1)[0].rsplit("<label", 1)[1] + 'id="x2s-mine"'
+        self.assertNotIn("checked", box)

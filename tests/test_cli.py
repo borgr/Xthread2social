@@ -3,7 +3,7 @@ import io
 import json
 import pathlib
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 
 from xthread2social.cli import main
 
@@ -51,3 +51,19 @@ class TestPreview(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFromJsonRejectsTheWrongShape(unittest.TestCase):
+    """`--from-json` is the documented fallback when the reader breaks, so handing it the wrong
+    file (the raw syndication payload is the easy mistake) has to read as an error."""
+
+    def test_a_wrong_shaped_file_is_an_error_not_a_traceback(self):
+        import tempfile
+        from xthread2social.cli import main
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+            fh.write('{"2090073048565072360": {"full_text": "raw payload"}}')
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = main(["--from-json", fh.name])
+        self.assertEqual(code, 2)
+        self.assertIn("not a thread.json", err.getvalue())

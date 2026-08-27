@@ -20,7 +20,7 @@ import traceback
 from contextlib import redirect_stdout
 
 from . import __version__, config
-from .cli import attribution_for, build_targets, credit_for, publish as do_publish
+from .cli import attribution_for, build_targets, credit_for, is_mine, publish as do_publish
 from .ledger import DEFAULT as LEDGER_PATH
 from .ledger import Busy
 from .read_syndication import IncompleteError, ReadError, read_thread
@@ -94,7 +94,9 @@ def route_preview(payload):
                 note=payload.get("note", ""))
     out = {"author": thread.author, "tweets": len(thread.tweets),
            "source_url": thread.source_url, "warnings": list(thread.warnings),
-           "urls": [t.url for t in thread.tweets], "targets": {}}
+           "urls": [t.url for t in thread.tweets], "mine": is_mine(thread),
+           "credited": bool(credit_for(thread, args) or attribution_for(thread, args)),
+           "targets": {}}
     index = {t.id: i + 1 for i, t in enumerate(thread.tweets)}
     for kind in args.to:
         units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args),

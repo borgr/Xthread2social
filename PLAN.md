@@ -155,6 +155,8 @@ Pillow resize under the 1 MB blob cap and ≤4 images per post; the reader; the 
 - **Attribution.** Not your thread → `🔁 crossposted from @handle` on the first post (shrunk
   or dropped if it would split the opening tweet) and `— via @handle` plus the source URL on the final post,
   and check your Mastodon instance's rules on mirroring before the first non-self thread.
+  `--no-attribution`, or the overlay's **as mine** box, drops both for a thread whose author
+  asked you to carry it under your own name. Opt-in per publish, never remembered.
 - **Visibility.** Root public, replies unlisted on Mastodon (relay precedent, avoids flooding);
   `--all-public` to override.
 

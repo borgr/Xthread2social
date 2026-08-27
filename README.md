@@ -111,7 +111,9 @@ must not be able to post as `colab-links`.
 - Credits someone else's thread twice: `🔁 x-post from @author` at the bottom of the **first**
   post, and `— x-post from @author <source>` on the last. The opening line always appears —
   it shrinks to `🔁 x-post @author` or `🔁 @author` to avoid costing an extra post, and takes
-  the extra post if even the shortest wording will not fit. `--no-attribution` drops both.
+  the extra post if even the shortest wording will not fit. `--no-attribution`, or the
+  **as mine** box in the overlay, drops both for a thread whose author asked you to carry it
+  under your own name. Off by default and never remembered between threads.
 - **Your own thread carries nothing at all** — no credit line, no self-reference, and no link
   back to X: reposting yourself is just posting. `--source-link` adds the bare tweet URL back
   when you do want to point at the original. Which handles count as you comes from `X_HANDLES`
@@ -128,7 +130,7 @@ must not be able to post as `colab-links`.
 | `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
 | `--note TEXT` | your own words above the author's text on the first post |
 | `--source-link` | on your own thread, link back to the tweet (off by default) |
-| `--no-attribution` | drop the credit lines on someone else's thread too |
+| `--no-attribution` | someone else's thread with no credit at all, when its author asked you to post it as yours |
 | `--allow-incomplete` | post even though the last tweet has replies (the overlay asks instead) |
 | `--save-json f` / `--from-json f` | dump or reuse the parsed thread; `-` reads stdin |
 | `--doctor` | check every layer and print which one is broken (see below) |
@@ -171,6 +173,11 @@ than being truncated. The read is cached for 30 minutes, which is what makes tha
 (and means a thread previewed a minute ago still publishes if X's endpoint goes down in
 between). The posts themselves are not editable: rendering is derived from the thread, so an
 edit would have to survive re-splitting, and this box covers what a note actually needs.
+
+Next to the target checkboxes, **as mine** appears only on someone else's thread, and drops
+both credit lines for the case where the author asked you to carry their thread under your own
+name. It re-previews on the spot, because a dropped credit shortens the first post and can
+re-split the whole thread. It starts unchecked every time the overlay opens.
 
 **When a hotkey does nothing, it is taken.** Chrome (`Cmd+Shift+T` = reopen closed tab) and
 other extensions (1Password grabs `Ctrl+Shift+X`) consume the keystroke before any page script
