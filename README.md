@@ -45,13 +45,13 @@ The Python tool must be installed on each machine — it needs local Python and 
 secret store. Nothing but the code is machine-specific, so it is a clone plus one install:
 
 ```bash
-git clone https://github.com/borgr/Xthread2social ~/PycharmProjects/Xthread2social
+git clone https://github.com/borgr/Xthread2social      # anywhere you keep code
 python3 -m venv ~/.venvs/xthread2social
-~/.venvs/xthread2social/bin/pip install -e ~/PycharmProjects/Xthread2social regex
+~/.venvs/xthread2social/bin/pip install -e ./Xthread2social regex
 ln -s ~/.venvs/xthread2social/bin/xthread2social ~/.local/bin/xthread2social   # must be on PATH
 ```
 
-`pipx install -e ~/PycharmProjects/Xthread2social` does the same in one line where pipx exists.
+`pipx install -e ./Xthread2social` does the same in one line where pipx exists.
 The userscript is **not** installed from the clone — see [Browser shortcut](#browser-shortcut).
 
 Bare install needs only `atproto` and `pillow`. `pip install 'xthread2social[graphemes]'` adds
