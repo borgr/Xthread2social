@@ -73,7 +73,11 @@ Yes to a userscript — but a different one than v1's. It collects **ids only**;
 the thread, touches GraphQL, or holds a credential. ~30 lines, and the reader stays in Python
 where it is tested.
 
-What it does on `x.com/*/status/*`: scan rendered `article[data-testid="tweet"]` permalinks,
+It is matched on all of `x.com/*` and gates its UI on the URL at runtime, because X navigates
+by `pushState` and a script matched on `*/status/*` alone is injected only when a status URL is
+loaded outright — never when you click a tweet in the timeline.
+
+On a status page it scans rendered `article[data-testid="tweet"]` permalinks,
 keep those by the page author, take min and max id (snowflake ids are time-ordered, so max is
 the last tweet *rendered*), then hand off `first`/`last`. Bind it to a key (`Ctrl+Shift+T`)
 via `document.addEventListener('keydown')` plus a `GM_registerMenuCommand` entry.

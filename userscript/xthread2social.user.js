@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.7.0
+// @version      0.8.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
-// @match        https://x.com/*/status/*
-// @match        https://twitter.com/*/status/*
+// @match        https://x.com/*
+// @match        https://twitter.com/*
 // @downloadURL  https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
 // @updateURL    https://raw.githubusercontent.com/borgr/Xthread2social/main/userscript/xthread2social.user.js
 // @connect      127.0.0.1
@@ -23,10 +23,15 @@
 //
 // GM_xmlhttpRequest is required rather than fetch: x.com sends `default-src 'self'`, which
 // blocks any page-context request to 127.0.0.1.
+//
+// @match covers the whole site, not just `/status/*`, because x.com is a single-page app: it
+// changes the URL with history.pushState and never reloads, so a script matched only on a
+// status URL is injected when you paste the link and never when you click a tweet from the
+// timeline. The UI is gated on the URL at runtime instead - see onStatusPage.
 (function () {
   'use strict';
 
-  const VERSION = '0.7.0';                // shown in every overlay: the fastest way to
+  const VERSION = '0.8.0';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -48,6 +53,7 @@
   }
 
   const pageAuthor = () => location.pathname.split('/')[1];
+  const onStatusPage = () => /\/status\/\d+/.test(location.pathname);
   const token = () => GM_getValue('token', '');
 
   function collectIds() {
@@ -242,6 +248,8 @@
 
   function run() {
     if (!token()) return askToken(true);
+    if (!onStatusPage()) return showError(new Error(
+      'open a tweet first - this publishes from x.com/<user>/status/<id>'));
     const urls = urlsForRequest();
     if (!urls) return showError(new Error('no tweets found on this page - reload and retry'));
     preview(urls);
@@ -307,7 +315,12 @@
 
   // A button, because a hotkey can always be stolen by the browser or another extension.
   function addButton() {
-    if (GM_getValue('hideButton', false) || document.getElementById('x2s-btn')) return;
+    const existing = document.getElementById('x2s-btn');
+    if (!onStatusPage()) {                      // home, profile, messages: nothing to publish
+      if (existing) existing.remove();
+      return;
+    }
+    if (GM_getValue('hideButton', false) || existing) return;
     const b = document.createElement('button');
     b.id = 'x2s-btn';
     b.textContent = '\u{1F501} publish';
@@ -320,6 +333,18 @@
   }
   addButton();
   new MutationObserver(addButton).observe(document.body, {childList: true});
+
+  // pushState/replaceState fire no event, so they are wrapped to keep the button in step with
+  // client-side navigation between a tweet and the rest of the site.
+  for (const name of ['pushState', 'replaceState']) {
+    const original = history[name];
+    history[name] = function () {
+      const r = original.apply(this, arguments);
+      addButton();
+      return r;
+    };
+  }
+  window.addEventListener('popstate', addButton);
 
   // One console line at load, because "is it even running?" is otherwise unanswerable: a
   // disabled script, a duplicate install, and a stolen hotkey all look like nothing at all.
