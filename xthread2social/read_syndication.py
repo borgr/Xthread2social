@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 
+from .media import best_variant
 from .model import Media, Thread, Tweet
 
 ENDPOINT = "https://cdn.syndication.twimg.com/tweet-result?id={id}&token=a"
@@ -96,14 +97,31 @@ def _text_of(d):
 
 
 def _media_of(d):
+    """mediaDetails -> Media, one per attachment.
+
+    For video and animated GIF, `media_url_https` is the poster frame and the playable MP4 is
+    in `video_info.variants`, so that is what the url points at.
+    """
     out = []
     for m in d.get("mediaDetails") or []:
+        kind = m.get("type", "photo")
         url = m.get("media_url_https") or ""
+        alt = m.get("ext_alt_text") or ""
+        if kind in ("video", "animated_gif"):
+            info = m.get("video_info") or {}
+            best = best_variant(info)
+            if not best:
+                out.append(Media(url="", kind=kind, alt=alt, mime="video/mp4"))
+                continue
+            w, h = (info.get("aspect_ratio") or [0, 0])[:2]
+            out.append(Media(url=best["url"], kind=kind, alt=alt, mime="video/mp4",
+                             duration_ms=int(info.get("duration_millis") or 0),
+                             width=int(w), height=int(h)))
+            continue
         if not url:
             continue
         mime = "image/png" if url.endswith(".png") else "image/jpeg"
-        out.append(Media(url=url, kind=m.get("type", "photo"),
-                         alt=m.get("ext_alt_text") or "", mime=mime))
+        out.append(Media(url=url, kind=kind, alt=alt, mime=mime))
     return out
 
 
@@ -173,10 +191,10 @@ def check(chain, declared_root="", allow_incomplete=False):
         if not allow_incomplete:
             raise IncompleteError(msg)
         warnings.append(msg)
-    av = [t.id for t in chain if any(m.kind != "photo" for m in t.media)]
-    if av:
-        warnings.append(f"video/GIF is not reposted in v1 - the source link is kept instead "
-                        f"({len(av)} tweet(s): {', '.join(av)})")
+    novariant = [t.id for t in chain for m in t.media if m.is_video and not m.url]
+    if novariant:
+        warnings.append(f"no MP4 variant for the video on {len(novariant)} tweet(s) "
+                        f"({', '.join(novariant)}) - those post as text only")
     noalt = sum(1 for t in chain for m in t.media if m.kind == "photo" and not m.alt)
     if noalt:
         warnings.append(f"{noalt} image(s) have no alt text - the syndication endpoint does not "

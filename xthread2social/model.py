@@ -13,10 +13,18 @@ class Media:
     kind: str = "photo"            # photo | video | animated_gif
     alt: str = ""
     mime: str = "image/jpeg"
+    duration_ms: int = 0           # video and animated_gif only
+    width: int = 0
+    height: int = 0
 
     @property
     def filename(self):
-        return self.url.rsplit("/", 1)[-1].split("?")[0] or "image.jpg"
+        default = "video.mp4" if self.mime.startswith("video/") else "image.jpg"
+        return self.url.rsplit("/", 1)[-1].split("?")[0] or default
+
+    @property
+    def is_video(self):
+        return self.kind in ("video", "animated_gif")
 
 
 @dataclass

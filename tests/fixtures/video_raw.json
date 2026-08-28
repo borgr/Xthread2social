@@ -1,0 +1,73 @@
+{
+ "2093383151422943511": {
+  "id_str": "2093383151422943511",
+  "text": "Will the same model become a different  player depending on the interface language?\n\nWe report our findings in our paper \"Skill Issue: Are Skills Language-Invariant in LLMs?\". \n\nAnd with it, TextArena is now multilingual \ud83c\udf0d with 65 games in 193 languages. \ud83e\uddf5 https://t.co/QRIrdl6OZn",
+  "conversation_count": 2,
+  "entities": {
+   "media": [
+    {
+     "display_url": "pic.x.com/QRIrdl6OZn",
+     "expanded_url": "https://x.com/bobbycxy/status/2093383151422943511/video/1",
+     "indices": [
+      257,
+      280
+     ],
+     "url": "https://t.co/QRIrdl6OZn"
+    }
+   ]
+  },
+  "user": {
+   "screen_name": "bobbycxy"
+  },
+  "mediaDetails": [
+   {
+    "type": "video",
+    "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2093157471133278208/img/XrxKf1gUN_kgt6x_.jpg",
+    "url": "https://t.co/QRIrdl6OZn",
+    "video_info": {
+     "aspect_ratio": [
+      921,
+      562
+     ],
+     "duration_millis": 9000,
+     "variants": [
+      {
+       "content_type": "application/x-mpegURL",
+       "url": "https://video.twimg.com/amplify_video/2093157471133278208/pl/-78VzAABT3SmMYIV.m3u8"
+      },
+      {
+       "bitrate": 256000,
+       "content_type": "video/mp4",
+       "url": "https://video.twimg.com/amplify_video/2093157471133278208/vid/avc1/442x270/0Qi7VsfNYnShdf-7.mp4"
+      },
+      {
+       "bitrate": 832000,
+       "content_type": "video/mp4",
+       "url": "https://video.twimg.com/amplify_video/2093157471133278208/vid/avc1/588x360/HGi_CU6jv-EHQQIi.mp4"
+      },
+      {
+       "bitrate": 2176000,
+       "content_type": "video/mp4",
+       "url": "https://video.twimg.com/amplify_video/2093157471133278208/vid/avc1/1178x720/zSuy_Xuq2A3LgGI-.mp4"
+      },
+      {
+       "bitrate": 10368000,
+       "content_type": "video/mp4",
+       "url": "https://video.twimg.com/amplify_video/2093157471133278208/vid/avc1/1842x1124/ja0_3fIdy3w7DmxQ.mp4"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "2093371472202924334": {
+  "id_str": "2093371472202924334",
+  "text": "Provost:\nThis sentence has five words. Here are five more words. Five-word sentences are fine. But several together become monotonous. Listen to what is happening. The writing is getting boring. The sound of it drones. It\u2019s like a stuck record. The ear demands some variety.",
+  "conversation_count": 1,
+  "entities": {},
+  "user": {
+   "screen_name": "LChoshen"
+  },
+  "mediaDetails": []
+ }
+}

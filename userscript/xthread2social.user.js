@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.8.0
+// @version      0.9.0
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -31,7 +31,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '0.8.0';                // shown in every overlay: the fastest way to
+  const VERSION = '0.9.0';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -150,6 +150,8 @@
         if (p.parts > 1) bits.push(`part ${p.part}/${p.parts} of tweet ${p.tweet}`);
         bits.push(`${p.text.length} chars`);
         if (p.images.length) bits.push(`${p.images.length} image(s)`);
+        if (p.video) bits.push(`${p.video.kind === 'animated_gif' ? 'GIF' : 'video'}` +
+                               (p.video.ms ? ` ${Math.round(p.video.ms / 1000)}s` : ''));
         if (kinds.length > 1 && i === 0) bits.push(`showing ${shown}`);
         return `<div class="post"><div class="meta">${esc(bits.join(' · '))}</div>` +
                `${esc(p.text)}</div>`;
@@ -225,7 +227,7 @@
   }
 
   async function doPublish(urls, to, note, asMine) {
-    shell('Xthread2social', 'publishing - uploading images, then posting…');
+    shell('Xthread2social', 'publishing - uploading media, then posting…');
     try {
       showResult(await call('/publish', {urls, to, allow_incomplete: true, note: note || '',
                                          no_attribution: !!asMine}));

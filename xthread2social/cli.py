@@ -99,28 +99,48 @@ def credit_for(thread, args):
 
 
 def ask_alt(thread):
-    """Prompt for alt text per image (X's syndication payload has none)."""
+    """Prompt for alt text per image and video (X's syndication payload has none)."""
     for t in thread.tweets:
         for m in t.media:
-            if m.kind == "photo" and not m.alt:
+            if not m.alt and (m.kind == "photo" or (m.is_video and m.url)):
                 try:
                     m.alt = input(f"  alt for {m.url.rsplit('/', 1)[-1]} (blank to skip): ").strip()
                 except EOFError:
                     return
 
 
+def media_summary(thread):
+    """What the thread carries, in preview-header form ("3 images, 1 GIF")."""
+    counts = {}
+    for t in thread.tweets:
+        for m in t.media:
+            name = {"photo": "image", "video": "video", "animated_gif": "GIF"}.get(m.kind, m.kind)
+            counts[name] = counts.get(name, 0) + 1
+    return ", ".join(f"{n} {name}{'s' if n > 1 else ''}"
+                     for name, n in counts.items()) or "no media"
+
+
+def _unit_media(u):
+    m = u.get("video")
+    if m:
+        label = "GIF" if m.kind == "animated_gif" else "video"
+        secs = f" {m.duration_ms / 1000:.0f}s" if m.duration_ms else ""
+        return f"  [{label}{secs}]"
+    return f"  [{len(u['images'])} image(s)]" if u["images"] else ""
+
+
 def preview(thread, args):
     print(f"\n{thread.author}: {len(thread.tweets)} tweets, "
-          f"{sum(len(t.media) for t in thread.tweets)} images -> {thread.source_url}")
+          f"{media_summary(thread)} -> {thread.source_url}")
     for w in thread.warnings:
         print(f"  [warn] {w}")
     for kind in args.to:
         units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args),
-                       note=getattr(args, "note", "") or "")
+                       note=getattr(args, "note", "") or "",
+                       videos=not getattr(args, "no_video", False))
         print(f"\n--- {kind}: {len(units)} post(s) ---")
         for i, u in enumerate(units, 1):
-            imgs = f"  [{len(u['images'])} image(s)]" if u["images"] else ""
-            print(f"{i:>2}. ({len(u['text'])} chars){imgs}\n{u['text']}\n")
+            print(f"{i:>2}. ({len(u['text'])} chars){_unit_media(u)}\n{u['text']}\n")
 
 
 def publish(thread, args, targets):
@@ -133,7 +153,8 @@ def _publish_locked(thread, args, targets):
     failures = []
     for tgt in targets:
         units = render(thread, tgt.name, attribution_for(thread, args),
-                       credit_for(thread, args), note=getattr(args, "note", "") or "")
+                       credit_for(thread, args), note=getattr(args, "note", "") or "",
+                       videos=not getattr(args, "no_video", False))
         start, refs = ledger.done(thread.root_id, tgt.name)
         if start >= len(units):
             print(f"[{tgt.name}] already complete ({start} posts) - nothing to do")
@@ -178,7 +199,11 @@ def main(argv=None):
     ap.add_argument("--from-json", metavar="PATH", help="read a Thread from JSON ('-' for stdin) "
                                                        "instead of the syndication endpoint")
     ap.add_argument("--save-json", metavar="PATH", help="write the read thread as JSON")
-    ap.add_argument("--alt", action="store_true", help="prompt for alt text per image")
+    ap.add_argument("--alt", action="store_true",
+                    help="prompt for alt text per image and video")
+    ap.add_argument("--no-video", action="store_true",
+                    help="post the text without the video or GIF, for when a target rejects "
+                         "it or it is too large")
     ap.add_argument("--allow-incomplete", action="store_true",
                     help="post even though the last tweet may have a continuation")
     ap.add_argument("--all-public", action="store_true",

@@ -17,7 +17,7 @@ The ranking is the design tool: when two options conflict, the higher goal wins.
 5. **Cannot post as `colab-links`.** Separate repo, separate credentials, minimal scope.
 6. **Reviewable before it goes public** (`--dry-run` prints exactly what will post).
 
-Non-goals for v1: video, unattended/cron mirroring, posting *to* X, protected accounts,
+Non-goals for v1: unattended/cron mirroring, posting *to* X, protected accounts,
 a scheduling UI.
 
 ## Architecture: one contract, swappable readers
@@ -273,10 +273,12 @@ desktop session.
   Response: write Reader B. The contract means nothing else changes.
 - **Media URLs** (`pbs.twimg.com`) are public today; if they ever require auth, images need
   Reader B.
-- **`atproto` is pre-1.0** — pin it, don't float.
+- **`atproto` is pre-1.0**, so `pyproject.toml` pins it to `>=0.0.55,<0.1`.
 - **X ToS** discourages automated reading; this is manual, one thread at a time, from your own
   session. Volume stays human.
-- **Video** out of scope; a video tweet posts its text plus the source link, with a warning.
+- **Video and animated GIFs** carry the largest MP4 variant that fits under 40 MB (the
+  smaller of Bluesky's 300 MB and a typical Mastodon instance's cap). A variantless video, or one
+  a target rejects, is a warning or a `--no-video` re-run, never a half-published thread.
 
 ## Why v1 was replaced
 

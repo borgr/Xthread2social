@@ -6,7 +6,7 @@ of a half-published thread.
 """
 import time
 
-from .media import fetch_photo, photos_of, shrink
+from .media import fetch_photo, fetch_video, photos_of, shrink, video_of
 from .textutil import (LIMIT, MASTODON_LIMIT, build_richtext, chunk_for_bluesky,
                        chunk_text, glen, mastodon_eff)
 
@@ -15,7 +15,7 @@ class PostError(Exception):
     """A target failed. Anything already published stays in the ledger."""
 
 
-def render(thread, limit_kind="bluesky", attribution="", credit="", note=""):
+def render(thread, limit_kind="bluesky", attribution="", credit="", note="", videos=True):
     """Thread -> list of {text, tweet} units, one per post, in order.
 
     A tweet longer than the target's cap becomes several consecutive posts; images ride
@@ -69,7 +69,10 @@ def render(thread, limit_kind="bluesky", attribution="", credit="", note=""):
         if last and attribution:
             chunks[-1] = (chunks[-1] + attribution).strip()
         for j, c in enumerate(chunks):
-            units.append({"text": c, "tweet": t, "images": photos_of(t) if j == 0 else []})
+            first = j == 0
+            units.append({"text": c, "tweet": t,
+                          "images": photos_of(t) if first else [],
+                          "video": (video_of(t) if videos else None) if first else None})
     return units
 
 
@@ -105,9 +108,12 @@ class Bluesky:
         raise PostError(f"Bluesky login failed after 3 tries: {type(last).__name__}: {last}")
 
     def prepare(self, units):
-        """Phase 1: upload every image as a blob. Nothing is visible yet."""
+        """Phase 1: upload every image and video as a blob. Nothing is visible yet."""
         from atproto import models
         for u in units:
+            if u.get("video"):
+                u["embed"] = self._video_embed(u["video"], models)
+                continue
             embeds = []
             for m in u["images"]:
                 data, _ = shrink(fetch_photo(m.url))
@@ -115,6 +121,27 @@ class Bluesky:
                 embeds.append(models.AppBskyEmbedImages.Image(alt=m.alt or "", image=blob))
             u["embed"] = models.AppBskyEmbedImages.Main(images=embeds) if embeds else None
         return units
+
+    def _video_embed(self, m, models):
+        """An app.bsky.embed.video for one MP4.
+
+        `presentation="gif"` is what makes an X animated GIF loop silently in the client the
+        way it does on X, rather than arriving as a 2-second video with a play button.
+
+        The blob goes straight to the PDS (the "simple method" in Bluesky's video docs). Their
+        video CDN only starts processing once the post reaches the firehose, so a fresh post can
+        show an empty player for a few seconds.
+        """
+        try:
+            blob = self.client.upload_blob(fetch_video(m)).blob
+        except Exception as e:
+            raise PostError(f"Bluesky rejected the video from {m.url}: {e}\n"
+                            f"`--no-video` posts the thread without it.") from e
+        ratio = (models.AppBskyEmbedDefs.AspectRatio(width=m.width, height=m.height)
+                 if m.width and m.height else None)
+        return models.AppBskyEmbedVideo.Main(
+            video=blob, alt=m.alt or "", aspect_ratio=ratio,
+            presentation="gif" if m.kind == "animated_gif" else None)
 
     def publish(self, units, start=0, refs=None):
         """Phase 2: create records, threading each onto the previous."""
@@ -208,16 +235,23 @@ class Mastodon:
 
     def prepare(self, units):
         for u in units:
+            attachments = [u["video"]] if u.get("video") else u["images"]
             ids = []
-            for m in u["images"]:
-                data = fetch_photo(m.url)
+            for m in attachments:
+                try:
+                    data = fetch_video(m) if m.is_video else fetch_photo(m.url)
+                except Exception as e:
+                    raise PostError(f"could not fetch {m.url}: {e}\n"
+                                    f"`--no-video` posts the thread without it.") from e
                 raw, ctype = self._multipart(m.filename, m.mime, data,
-                                             {"description": m.alt or ""})
+                                            {"description": m.alt or ""})
                 res = self._req("/api/v2/media", "POST", raw=raw, content_type=ctype,
-                                timeout=120)
+                                timeout=300 if m.is_video else 120)
                 mid = res.get("id")
-                if mid and not res.get("url"):          # 202 accepted, still processing
-                    for _ in range(8):
+                # 202 accepted, still transcoding. Video takes far longer than an image, and a
+                # status that references an unfinished attachment is rejected.
+                if mid and not res.get("url"):
+                    for _ in range(60 if m.is_video else 8):
                         time.sleep(2)
                         if self._req(f"/api/v1/media/{mid}", timeout=30, retries=1).get("url"):
                             break

@@ -103,6 +103,10 @@ must not be able to post as `colab-links`.
   first tweet. Half-published threads are the failure this is built to prevent.
 - Splits over-long tweets at sentence boundaries (300 graphemes Bluesky / 500 chars Mastodon),
   keeps links clickable, carries images on the post where they appeared.
+- Reposts video and animated GIFs as video, choosing the largest MP4 variant under 40 MB. A GIF
+  is marked as one, so Bluesky loops it silently instead of showing a play button. Bluesky wants a
+  confirmed email on the posting account and caps video posts per day; Mastodon transcodes on its
+  own side, which is why a video post takes longer to go out than a text one.
 - Uploads **all** media before creating **any** post, so an image failure publishes nothing.
 - Records progress per `(thread, target)`: re-run the same command to resume mid-thread.
 - Holds a per-thread lock while publishing, so two tabs (or a retry after the browser gave up
@@ -127,7 +131,8 @@ must not be able to post as `colab-links`.
 |---|---|
 | `--post` | actually publish (everything is preview-only by default) |
 | `--to bluesky` / `--to mastodon` | one target instead of both |
-| `--alt` | prompt for alt text per image (X's endpoint does not expose it) |
+| `--alt` | prompt for alt text per image and video (X's endpoint does not expose it) |
+| `--no-video` | post the text without the video or GIF, when a target rejects it |
 | `--note TEXT` | your own words above the author's text on the first post |
 | `--source-link` | on your own thread, link back to the tweet (off by default) |
 | `--no-attribution` | someone else's thread with no credit at all, when its author asked you to post it as yours |

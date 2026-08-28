@@ -52,11 +52,12 @@ def log(msg):
 
 class Args:
     """The subset of the CLI's argparse namespace that render/publish read."""
-    def __init__(self, to, all_public=False, no_attribution=False, note=""):
+    def __init__(self, to, all_public=False, no_attribution=False, note="", no_video=False):
         self.to = to
         self.all_public = all_public
         self.no_attribution = no_attribution
         self.note = note
+        self.no_video = no_video
 
 
 def _targets_wanted(payload):
@@ -91,7 +92,7 @@ def _web_url(target, ref, handle):
 def route_preview(payload):
     thread = _thread(payload)
     args = Args(_targets_wanted(payload), no_attribution=bool(payload.get("no_attribution")),
-                note=payload.get("note", ""))
+                note=payload.get("note", ""), no_video=bool(payload.get("no_video")))
     out = {"author": thread.author, "tweets": len(thread.tweets),
            "source_url": thread.source_url, "warnings": list(thread.warnings),
            "urls": [t.url for t in thread.tweets], "mine": is_mine(thread),
@@ -100,7 +101,7 @@ def route_preview(payload):
     index = {t.id: i + 1 for i, t in enumerate(thread.tweets)}
     for kind in args.to:
         units = render(thread, kind, attribution_for(thread, args), credit_for(thread, args),
-                       note=args.note)
+                       note=args.note, videos=not args.no_video)
         # A tweet longer than the target's cap becomes several posts; say so, so "1 tweet ->
         # 2 posts" reads as splitting rather than as the reader having grabbed a stray tweet.
         parts = {}
@@ -111,7 +112,9 @@ def route_preview(payload):
         for u in units:
             tid = u["tweet"].id
             seen[tid] = seen.get(tid, 0) + 1
+            vid = u.get("video")
             rows.append({"text": u["text"], "images": [m.url for m in u["images"]],
+                         "video": ({"kind": vid.kind, "ms": vid.duration_ms} if vid else None),
                          "tweet": index.get(tid, 0), "part": seen[tid], "parts": parts[tid]})
         out["targets"][kind] = rows
     return out
@@ -122,7 +125,7 @@ def route_publish(payload):
     thread = _thread(payload)
     args = Args(_targets_wanted(payload), all_public=bool(payload.get("all_public")),
                 no_attribution=bool(payload.get("no_attribution")),
-                note=payload.get("note", ""))
+                note=payload.get("note", ""), no_video=bool(payload.get("no_video")))
     targets = build_targets(args)
     if not targets:
         return {"error": f"no target configured - see {config.PATH}"}
