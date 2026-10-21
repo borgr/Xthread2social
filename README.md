@@ -271,3 +271,6 @@ change to the endpoint shows up as a `FAIL` line rather than as a mangled post.
 ```bash
 python3 -m unittest discover -s tests      # offline, except one secret-store round-trip
 ```
+
+---
+More tools and guides by Leshem Choshen: [tools](https://borgr.github.io/tools/) · [guides](https://borgr.github.io/guides/) · [homepage](https://borgr.github.io/)
