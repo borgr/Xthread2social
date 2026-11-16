@@ -234,3 +234,49 @@ class TestOverlayMatchesTheApi(unittest.TestCase):
     def test_the_control_starts_unchecked_so_the_default_cannot_drift(self):
         box = self.js.split('id="x2s-mine"', 1)[0].rsplit("<label", 1)[1] + 'id="x2s-mine"'
         self.assertNotIn("checked", box)
+
+
+class TestVirtualizedDomWalk(unittest.TestCase):
+    """When X virtualizes early tweets out of the DOM, the browser only sees mid-thread -> tail;
+    the listener must still walk all the way back to the real root, while rejecting stray replies."""
+
+    def setUp(self):
+        from xthread2social import cache
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        old = cache.DIR
+        cache.DIR = Path(d.name)
+        self.addCleanup(lambda: setattr(cache, "DIR", old))
+        self.raw = json.loads((Path(__file__).parent / "fixtures/nthngdy_raw.json").read_text())
+
+    def test_mid_thread_ancestor_does_not_chop_off_opening_tweets(self):
+        from xthread2social import read_syndication as rs
+        old, rs.fetch, rs.walk.__defaults__ = rs.fetch, lambda i: self.raw[i], ("", lambda i: self.raw[i], 0, rs.fetch_note)
+        try:
+            # Simulates both v0.9.0 (two URLs: tail + mid-thread) and v0.9.1 (tail + focus).
+            th1 = serve._thread({"urls": ["2090073048565072360", "2090073047625543725"],
+                                 "allow_incomplete": True})
+            th2 = serve._thread({"urls": ["2090073048565072360"],
+                                 "focus": "2090073047625543725", "allow_incomplete": True})
+        finally:
+            rs.fetch = old
+            rs.walk.__defaults__ = ("", rs.fetch, 0.4, rs.fetch_note)
+        self.assertEqual(len(th1.tweets), 8)
+        self.assertEqual(th1.tweets[0].id, "2090073045146677693")
+        self.assertEqual(len(th2.tweets), 8)
+        self.assertEqual(th2.tweets[0].id, "2090073045146677693")
+
+    def test_stray_reply_outside_focused_thread_is_rejected(self):
+        from xthread2social import read_syndication as rs
+        stray = dict(self.raw["2090073048565072360"], id_str="2090999999999999999",
+                     in_reply_to_status_id_str="111")
+        data = {**self.raw, "2090999999999999999": stray,
+                "111": {"id_str": "111", "text": "comment", "user": {"screen_name": "stranger"}}}
+        old = rs.walk.__defaults__
+        rs.walk.__defaults__ = ("", lambda i: data[i], 0, rs.fetch_note)
+        try:
+            with self.assertRaises(rs.ReadError):
+                serve._thread({"urls": ["2090999999999999999"],
+                               "focus": "2090073045146677693", "allow_incomplete": True})
+        finally:
+            rs.walk.__defaults__ = old

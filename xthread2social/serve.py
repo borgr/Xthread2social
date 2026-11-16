@@ -67,7 +67,13 @@ def _targets_wanted(payload):
 
 def _thread(payload):
     """The read, cached for TTL. Editing the note re-previews; publishing re-reads what was
-    previewed - neither should re-walk the chain against X."""
+    previewed - neither should re-walk the chain against X.
+
+    X virtualizes off-screen tweets out of the DOM, so the earliest tweet visible in the
+    browser is often mid-thread rather than the real opener. Only the newest id is walked from
+    (all the way to the true conversation root), while any earlier ids / focused tweet id are
+    checked via `must_include` so a stray reply below the thread still cannot slip through.
+    """
     from . import cache
     from .read_syndication import parse_ids
     urls = payload.get("urls") or []
@@ -75,10 +81,14 @@ def _thread(payload):
         raise ReadError("no tweet urls given")
     allow = bool(payload.get("allow_incomplete"))
     ids = parse_ids(urls)
-    hit = cache.get(ids, allow)
+    focus = parse_ids([payload["focus"]]) if payload.get("focus") else []
+    must = sorted(set(ids[:-1] + focus), key=int)
+    key = [ids[-1], *must]
+    hit = cache.get(key, allow)
     if hit:
         return hit
-    return cache.put(ids, allow, read_thread(urls, allow_incomplete=allow))
+    return cache.put(key, allow,
+                     read_thread([ids[-1]], allow_incomplete=allow, must_include=must))
 
 
 def _web_url(target, ref, handle):

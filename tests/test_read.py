@@ -62,6 +62,39 @@ class TestExtraction(unittest.TestCase):
         self.assertEqual(to_tweet(RAW[TAIL]).media, [])
         self.assertEqual(sum(len(to_tweet(d).media) for d in RAW.values()), 8)
 
+    def test_note_tweet_stub_resolves_full_text_and_links(self):
+        stub = {
+            "id_str": "99",
+            "user": {"screen_name": "akshatgupta57"},
+            "text": "Truncated at 280 chars https://t.co/pic",
+            "note_tweet": {"id": "Tm90ZVR3ZWV0"},
+            "mediaDetails": [{"url": "https://t.co/pic", "type": "photo",
+                              "media_url_https": "https://pbs.twimg.com/media/a.jpg"}],
+        }
+        fx = {
+            "id": "99",
+            "raw_text": {
+                "text": "Full body &amp; more: https://t.co/blog https://t.co/pic",
+                "facets": [
+                    {"type": "url", "original": "https://t.co/blog",
+                     "replacement": "https://akshat57.github.io/blog/"},
+                    {"type": "media", "original": "https://t.co/pic",
+                     "replacement": "https://x.com/akshatgupta57/status/99/photo/1"},
+                ],
+            },
+        }
+        t = to_tweet(stub, note_fetcher=lambda tid: fx)
+        self.assertEqual(t.text, "Full body & more: https://akshat57.github.io/blog/")
+        self.assertEqual(t.links, ["https://akshat57.github.io/blog/"])
+
+    def test_note_tweet_failure_raises_instead_of_truncating(self):
+        stub = {"id_str": "99", "user": {"screen_name": "a"},
+                "text": "cut off mid", "note_tweet": {"id": "Tm90ZQ"}}
+        def boom(_):
+            raise ReadError("fxtwitter unreachable")
+        with self.assertRaises(ReadError):
+            to_tweet(stub, note_fetcher=boom)
+
 
 class TestGates(unittest.TestCase):
     def test_clean_thread_passes(self):
@@ -73,6 +106,13 @@ class TestGates(unittest.TestCase):
         with self.assertRaises(ReadError) as cm:
             check(chain, "1234567890")
         self.assertIn("incomplete", str(cm.exception))
+
+    def test_must_include_passes_for_mid_thread_tweet_and_blocks_stray_reply(self):
+        chain = walk(TAIL, "", fetcher=offline, pause=0)
+        check(chain, "", must_include=["2090073047625543725"])   # mid-thread ancestor
+        with self.assertRaises(ReadError) as cm:
+            check(chain, "", must_include=["999999999"])
+        self.assertIn("without passing through 999999999", str(cm.exception))
 
     def test_gap_in_chain_is_fatal(self):
         chain = walk(TAIL, ROOT, fetcher=offline, pause=0)

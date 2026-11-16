@@ -15,6 +15,7 @@ from .media import best_variant
 from .model import Media, Thread, Tweet
 
 ENDPOINT = "https://cdn.syndication.twimg.com/tweet-result?id={id}&token=a"
+NOTE_ENDPOINT = "https://api.fxtwitter.com/i/status/{id}"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; xthread2social/0.1)"}
 STATUS_RE = re.compile(r"(?:twitter\.com|x\.com)/[^/]+/status(?:es)?/(\d+)")
 MAX_HOPS = 100
@@ -70,18 +71,81 @@ def fetch(tweet_id, timeout=20, retries=2):
     raise ReadError(f"could not fetch tweet {tweet_id}: {last}")
 
 
-def _text_of(d):
+def fetch_note(tweet_id, timeout=20, retries=2):
+    """Full payload for a long post (>280 chars) via FxTwitter's keyless JSON API.
+
+    X's syndication endpoint truncates `text` at ~280 chars and leaves only an `{id}` stub in
+    `note_tweet` with no body. FxTwitter resolves `note_tweet_results` inline into `tweet`.
+    """
+    url = NOTE_ENDPOINT.format(id=tweet_id)
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            tweet = data.get("tweet")
+            if tweet:
+                return tweet
+            last = ValueError("response contained no tweet object")
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 404):
+                raise ReadError(f"note_tweet {tweet_id} is unavailable (HTTP {e.code})")
+            last = e
+        except Exception as e:
+            last = e
+        if attempt < retries:
+            time.sleep(1.5 * (attempt + 1))
+    raise ReadError(f"tweet {tweet_id} is a long post truncated by X's syndication endpoint, "
+                    f"and fetching its full text failed: {last}")
+
+
+def _fx_text_of(fx, media_details=()):
+    """Extract unescaped text and expanded URL list from an FxTwitter `tweet` dict."""
+    raw = fx.get("raw_text") or {}
+    if raw.get("text"):
+        text = raw["text"]
+        links = []
+        for f in raw.get("facets") or []:
+            if f.get("type") == "media" and f.get("original"):
+                text = text.replace(f["original"], "")
+            elif f.get("type") == "url" and f.get("original") and f.get("replacement"):
+                text = text.replace(f["original"], f["replacement"])
+                links.append(f["replacement"])
+        for m in media_details:
+            if m.get("url"):
+                text = text.replace(m["url"], "")
+        return html.unescape(text).strip(), links
+    text = fx.get("text") or ""
+    if not text:
+        raise ReadError(f"note_tweet {fx.get('id', '?')} carried no full text")
+    for m in media_details:
+        if m.get("url"):
+            text = text.replace(m["url"], "")
+    return text.strip(), []
+
+
+def _text_of(d, note_fetcher=fetch_note):
     """Visible text: `note_tweet` for long posts, otherwise `text`.
 
     X appends a t.co link to the text for each attached photo; those are removed by
     matching `mediaDetails[].url` exactly, rather than by slicing `display_text_range`
     (whose indices are UTF-16 units over partly-unescaped text - two off-by-N traps).
     Remaining t.co links are expanded, then HTML entities are unescaped.
+
+    On `cdn.syndication.twimg.com`, a long post (>280 chars) carries `note_tweet: {"id": ...}`
+    with no `text` field and a mid-sentence truncated `d["text"]`; those are resolved through
+    `note_fetcher` rather than silently truncated.
     """
-    note = (d.get("note_tweet") or {}).get("text")
+    note_obj = d.get("note_tweet")
+    note = (note_obj or {}).get("text") if isinstance(note_obj, dict) else None
     if note:
         text = note
-        ents = ((d.get("note_tweet") or {}).get("entity_set") or d.get("entities") or {})
+        ents = ((note_obj or {}).get("entity_set") or d.get("entities") or {})
+    elif note_obj:
+        if not d.get("id_str"):
+            raise ReadError("truncated note_tweet has no id_str to resolve")
+        return _fx_text_of(note_fetcher(d["id_str"]), d.get("mediaDetails") or ())
     else:
         text = d.get("text", "")
         ents = d.get("entities") or {}
@@ -125,34 +189,34 @@ def _media_of(d):
     return out
 
 
-def _quoted_of(d):
+def _quoted_of(d, note_fetcher=fetch_note):
     q = d.get("quoted_tweet")
     if not q:
         return ""
-    qtext, _ = _text_of(q)
+    qtext, _ = _text_of(q, note_fetcher=note_fetcher)
     return f"@{(q.get('user') or {}).get('screen_name', '?')}: {qtext}"
 
 
-def to_tweet(d):
-    text, links = _text_of(d)
+def to_tweet(d, note_fetcher=fetch_note):
+    text, links = _text_of(d, note_fetcher=note_fetcher)
     return Tweet(
         id=d["id_str"],
         text=text,
         author=(d.get("user") or {}).get("screen_name", ""),
         media=_media_of(d),
         links=links,
-        quoted=_quoted_of(d),
+        quoted=_quoted_of(d, note_fetcher=note_fetcher),
         reply_to=d.get("in_reply_to_status_id_str") or "",
         reply_count=int(d.get("conversation_count") or 0),
     )
 
 
-def walk(tail, declared_root="", fetcher=fetch, pause=0.4):
+def walk(tail, declared_root="", fetcher=fetch, pause=0.4, note_fetcher=fetch_note):
     """Walk backwards from `tail`, stopping at the declared root, the conversation
     root, or the first tweet by a different author. Returns oldest-first."""
     chain, seen, author, cur = [], set(), None, tail
     for _ in range(MAX_HOPS):
-        t = to_tweet(fetcher(cur))
+        t = to_tweet(fetcher(cur), note_fetcher=note_fetcher)
         if author is None:
             author = t.author
         elif t.author != author:
@@ -170,7 +234,7 @@ def walk(tail, declared_root="", fetcher=fetch, pause=0.4):
     return chain
 
 
-def check(chain, declared_root="", allow_incomplete=False):
+def check(chain, declared_root="", allow_incomplete=False, must_include=()):
     """The completeness gates, all run before anything is posted. Returns warnings."""
     if not chain:
         raise ReadError("no tweets read")
@@ -178,6 +242,12 @@ def check(chain, declared_root="", allow_incomplete=False):
         raise ReadError(
             f"incomplete: walked back to {chain[0].id} but you declared {declared_root} as the "
             f"first tweet. Pass only the last tweet to walk as far as the chain goes.")
+    seen = {t.id for t in chain}
+    missing = [tid for tid in must_include if tid not in seen]
+    if missing:
+        raise ReadError(
+            f"incomplete: walked back to {chain[0].id} without passing through {missing[0]} - "
+            f"a reply outside the thread may have been picked up.")
     for a, b in zip(chain, chain[1:]):
         if b.reply_to != a.id:
             raise ReadError(f"gap in the chain: {b.id} replies to {b.reply_to}, not {a.id}")
@@ -202,12 +272,13 @@ def check(chain, declared_root="", allow_incomplete=False):
     return warnings
 
 
-def read_thread(urls, allow_incomplete=False, fetcher=fetch, pause=0.4):
+def read_thread(urls, allow_incomplete=False, fetcher=fetch, pause=0.4,
+                note_fetcher=fetch_note, must_include=()):
     ids = parse_ids(urls)
     if not ids:
         raise ReadError("no tweet URL given")
     tail, declared_root = ids[-1], (ids[0] if len(ids) > 1 else "")
-    chain = walk(tail, declared_root, fetcher=fetcher, pause=pause)
-    warnings = check(chain, declared_root, allow_incomplete)
+    chain = walk(tail, declared_root, fetcher=fetcher, pause=pause, note_fetcher=note_fetcher)
+    warnings = check(chain, declared_root, allow_incomplete, must_include=must_include)
     return Thread(author=chain[0].author, tweets=chain,
                   source_url=chain[0].url, warnings=warnings)

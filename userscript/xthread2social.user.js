@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xthread2social — publish thread
 // @namespace    https://github.com/borgr/Xthread2social
-// @version      0.9.0
+// @version      0.9.1
 // @description  Preview an X thread and publish it to your own Bluesky + Mastodon without leaving the browser.
 // @match        https://x.com/*
 // @match        https://twitter.com/*
@@ -31,7 +31,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '0.9.0';                // shown in every overlay: the fastest way to
+  const VERSION = '0.9.1';                // shown in every overlay: the fastest way to
   const ENDPOINT = 'http://127.0.0.1:8765';  // tell a stale cached script from a live one
 
   // The hotkey is stored, not hardcoded: browser- and extension-level shortcuts (Chrome's
@@ -53,27 +53,51 @@
   }
 
   const pageAuthor = () => location.pathname.split('/')[1];
+  const focusedId = () => (location.pathname.match(/\/status\/(\d+)/) || [])[1] || '';
   const onStatusPage = () => /\/status\/\d+/.test(location.pathname);
   const token = () => GM_getValue('token', '');
 
+  function articleTweet(article, focus) {
+    if (focus) {
+      for (const a of article.querySelectorAll(`a[href$="/status/${focus}"]`)) {
+        const m = a.getAttribute('href').match(/^\/([^/]+)\/status\/(\d+)$/);
+        if (m && a.querySelector('time')) return {author: m[1].toLowerCase(), id: m[2]};
+      }
+    }
+    for (const t of article.querySelectorAll('time')) {
+      const a = t.closest('a[href*="/status/"]');
+      if (!a) continue;
+      const m = a.getAttribute('href').match(/^\/([^/]+)\/status\/(\d+)\/?$/);
+      if (m) return {author: m[1].toLowerCase(), id: m[2]};
+    }
+    return null;
+  }
+
   function collectIds() {
     const author = pageAuthor().toLowerCase();
+    const focus = focusedId();
     const ids = new Set();
-    for (const a of document.querySelectorAll('article a[href*="/status/"]')) {
-      const m = a.getAttribute('href').match(/^\/([^/]+)\/status\/(\d+)/);
-      if (m && m[1].toLowerCase() === author) ids.add(m[2]);
+    if (focus) ids.add(focus);
+    for (const article of document.querySelectorAll('article')) {
+      const tw = articleTweet(article, focus);
+      if (!tw) continue;
+      if (tw.author === author) {
+        ids.add(tw.id);
+      } else if (focus && BigInt(tw.id) > BigInt(focus)) {
+        // First reply by another user below the focused tweet ends the author's thread;
+        // stopping here avoids grabbing the author's replies to commenters further down.
+        break;
+      }
     }
-    const m = location.pathname.match(/\/status\/(\d+)/);
-    if (m) ids.add(m[1]);
     return [...ids].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1));
   }
 
   function urlsForRequest() {
     const ids = collectIds();
     if (!ids.length) return null;
-    const u = id => `https://x.com/${pageAuthor()}/status/${id}`;
-    // Both ends when we saw more than one, so the CLI can *prove* the chain is complete.
-    return ids.length > 1 ? [u(ids[ids.length - 1]), u(ids[0])] : [u(ids[0])];
+    // Only the tail tweet: X virtualizes off-screen <article> nodes out of the DOM, so ids[0]
+    // is often mid-thread rather than the real opener. The listener walks to the true root.
+    return [`https://x.com/${pageAuthor()}/status/${ids[ids.length - 1]}`];
   }
 
   function call(path, payload) {
@@ -190,7 +214,8 @@
     let timer = null, latest = data;
     const repreview = async () => {
       try {
-        latest = await call('/preview', {urls, allow_incomplete: true, note: note.value,
+        latest = await call('/preview', {urls, focus: focusedId(), allow_incomplete: true,
+                                         note: note.value,
                                          no_attribution: !!(mine && mine.checked)});
         renderPosts(posts, latest);               // the textarea itself is never re-rendered,
       } catch (e) { showError(e); }               // so typing is not interrupted
@@ -229,8 +254,8 @@
   async function doPublish(urls, to, note, asMine) {
     shell('Xthread2social', 'publishing - uploading media, then posting…');
     try {
-      showResult(await call('/publish', {urls, to, allow_incomplete: true, note: note || '',
-                                         no_attribution: !!asMine}));
+      showResult(await call('/publish', {urls, focus: focusedId(), to, allow_incomplete: true,
+                                         note: note || '', no_attribution: !!asMine}));
     } catch (e) { showError(e); }
   }
 
@@ -244,7 +269,7 @@
     shell('Xthread2social',
           `reading the thread (${urls.length > 1 ? 'both ends given' : 'walking back from this tweet'})…`);
     try {
-      showPreview(urls, await call('/preview', {urls, allow_incomplete: true}));
+      showPreview(urls, await call('/preview', {urls, focus: focusedId(), allow_incomplete: true}));
     } catch (e) { showError(e); }
   }
 
